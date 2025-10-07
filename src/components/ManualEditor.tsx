@@ -20,37 +20,8 @@ interface SectionRendererProps {
 
 // --- Sub-componentes de Renderização ---
 
-const SectionRenderer: FC<SectionRendererProps> = ({ section, isEditMode, onRemove }) => {
-  // eslint-disable-next-line @typescript-eslint/no-use-before-define
-  const Renderer = renderers[section.type];
-
-  return (
-    <div className="border-b border-gray-200 py-4 relative group">
-      {isEditMode && (
-        <button
-          onClick={() => onRemove(section.id)}
-          className="absolute top-2 right-2 text-red-500 hover:text-red-700 p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity text-xs"
-          title="Remover Bloco"
-        >
-          &times; Remover
-        </button>
-      )}
-      {Renderer ? (
-        <Renderer
-          section={section}
-          isEditMode={isEditMode}
-          onRemove={onRemove}
-        />
-      ) : (
-        <p>Bloco de tipo desconhecido: {section.type}</p>
-      )}
-    </div>
-  );
-};
-
-
 const renderers: { [key in SectionContent['type']]: FC<SectionRendererProps> } = {
-  paragraph: ({ section }) => {
+  paragraph: ({ section }: SectionRendererProps) => {
     if (section.type !== 'paragraph') return null;
     return (
         <div className="mt-2">
@@ -58,7 +29,7 @@ const renderers: { [key in SectionContent['type']]: FC<SectionRendererProps> } =
         </div>
     );
   },
-  table: ({ section }) => {
+  table: ({ section }: SectionRendererProps) => {
     if (section.type !== 'table') return null;
     return (
         <div className="mt-4 overflow-x-auto">
@@ -84,7 +55,7 @@ const renderers: { [key in SectionContent['type']]: FC<SectionRendererProps> } =
         </div>
     );
   },
-  list: ({ section }) => {
+  list: ({ section }: SectionRendererProps) => {
     if (section.type !== 'list') return null;
     return (
         <div className="mt-3">
@@ -95,7 +66,7 @@ const renderers: { [key in SectionContent['type']]: FC<SectionRendererProps> } =
         </div>
     );
   },
-  alert: ({ section }) => {
+  alert: ({ section }: SectionRendererProps) => {
     if (section.type !== 'alert') return null;
     const colors = {
       info: "bg-blue-50 border-blue-300 text-blue-800",
@@ -110,7 +81,7 @@ const renderers: { [key in SectionContent['type']]: FC<SectionRendererProps> } =
     );
   },
   // Adição necessária para evitar erros de execução
-  collapsible: ({ section, isEditMode, onRemove }) => {
+  collapsible: ({ section, isEditMode, onRemove }: SectionRendererProps) => {
     if (section.type !== 'collapsible') return null;
     return (
       <details className="group border border-gray-200 rounded-lg p-4 mt-4 bg-gray-50" open>
@@ -135,11 +106,41 @@ const renderers: { [key in SectionContent['type']]: FC<SectionRendererProps> } =
   }
 };
 
+const SectionRenderer: FC<SectionRendererProps> = ({ section, isEditMode, onRemove }) => {
+  const Renderer = renderers[section.type];
+
+  return (
+    <div className="border-b border-gray-200 py-4 relative group">
+      {isEditMode && (
+        <button
+          onClick={() => onRemove(section.id)}
+          className="absolute top-2 right-2 text-red-500 hover:text-red-700 p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity text-xs"
+          title="Remover Bloco"
+          aria-label="Remover Bloco"
+        >
+          &times; Remover
+        </button>
+      )}
+      {Renderer ? (
+        <Renderer
+          section={section}
+          isEditMode={isEditMode}
+          onRemove={onRemove}
+        />
+      ) : (
+        <p>Bloco de tipo desconhecido: {section.type}</p>
+      )}
+    </div>
+  );
+};
+
 // --- Componente Principal ---
 export const ManualEditor = () => {
   const [manualData, setManualData] = useState<ManualData>(createInitialManualData());
   const [activeTabId, setActiveTabId] = useState<string>("");
-  const [isEditMode] = useState(true);
+  // O modo de edição está fixo por enquanto. Se for se tornar dinâmico,
+  // o setter (setIsEditMode) precisará ser usado.
+  const isEditMode = true;
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [documentContent, setDocumentContent] = useState("");
@@ -149,21 +150,32 @@ export const ManualEditor = () => {
   );
   const [targetLanguage, setTargetLanguage] = useState("Português");
 
+  // Função recursiva para remover seções aninhadas
+  const removeSectionRecursively = (sections: SectionContent[], sectionId: string): SectionContent[] => {
+    // Filtra a seção no nível atual
+    const filteredSections = sections.filter(s => s.id !== sectionId);
+
+    // Mapeia as seções restantes para procurar aninhamentos
+    return filteredSections.map((section: SectionContent) => {
+      if (section.type === 'collapsible' && section.content) {
+        // Se for um 'collapsible', chama a função recursivamente para seu conteúdo
+        return { ...section, content: removeSectionRecursively(section.content, sectionId) };
+      }
+      return section;
+    });
+  };
+
   const handleRemoveSection = useCallback(
     (sectionId: string) => {
-      // Nota: Esta função precisaria de ser recursiva para remover blocos aninhados.
       setManualData((prev) => {
-        const newTabs = prev.tabs.map((tab) => {
+        const newTabs = prev.tabs.map((tab: Tab) => {
           if (tab.id !== activeTabId) return tab;
-          return {
-            ...tab,
-            content: tab.content.filter((s: SectionContent) => s.id !== sectionId),
-          };
+          return { ...tab, content: removeSectionRecursively(tab.content, sectionId) };
         });
         return { ...prev, tabs: newTabs };
       });
     },
-    [activeTabId]
+    [activeTabId, removeSectionRecursively]
   );
   
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -224,7 +236,7 @@ export const ManualEditor = () => {
   };
 
   const activeTabData = useMemo(() => {
-    return manualData.tabs.find((tab) => tab.id === activeTabId);
+    return manualData.tabs.find((tab: Tab) => tab.id === activeTabId);
   }, [manualData, activeTabId]);
 
   return (
