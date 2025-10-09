@@ -1,5 +1,6 @@
 import { DocxUploader } from '@/components/DocxUploader';
 import { ManualEditor } from '@/components/ManualEditor';
+import NcmSearchTest from '@/components/NcmSearch';
 import { Doc } from 'zod/v4/core';
 
 export default function HomePage() {
@@ -7,7 +8,7 @@ export default function HomePage() {
     <main className="min-h-screen bg-gray-100 p-4">
       <div className="max-w-4xl mx-auto">
         {/* <ManualEditor /> */}
-        <DocxUploader />
+        <NcmSearchTest />
       </div>
     </main>
   );
