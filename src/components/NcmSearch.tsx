@@ -2,10 +2,10 @@
 
 import React, { useState } from 'react';
 
-// Define a estrutura esperada para o resultado do NCM
+// Define a estrutura esperada para o resultado do NCM (Ajustado para o que o Serviço retorna)
 interface NcmResult {
-  code: string;
-  description: string;
+  ncm: string;      // Corresponde a item.ncm
+  descricao: string; // Corresponde a item.descricao
 }
 
 interface ApiResponse {
@@ -34,8 +34,8 @@ const NcmSearchTest: React.FC = () => {
     setError(null);
     
     try {
-      // 1. CHAMA O ENDPOINT DA API
-      const url = `/api/ncm-search?name=${encodeURIComponent(searchTerm)}`;
+      // 1. CHAMA O ENDPOINT DA API - AJUSTADO PARA USAR 'description'
+      const url = `/api/ncm-search?description=${encodeURIComponent(searchTerm)}`;
       const response = await fetch(url);
 
       if (!response.ok) {
@@ -99,13 +99,14 @@ const NcmSearchTest: React.FC = () => {
                     background: '#f9f9f9'
                   }}
                 >
-                  <p style={{ margin: 0 }}>**NCM:** <code style={{ fontWeight: 'bold' }}>{item.code}</code></p>
-                  <p style={{ margin: 0, fontSize: '0.9em' }}>**Descrição:** {item.description}</p>
+                  {/* AJUSTADO: Usando item.ncm e item.descricao */}
+                  <p style={{ margin: 0 }}>**NCM:** <code style={{ fontWeight: 'bold' }}>{item.ncm}</code></p>
+                  <p style={{ margin: 0, fontSize: '0.9em' }}>**Descrição:** {item.descricao}</p>
                 </li>
               ))}
             </ul>
           ) : (
-            <p>Nenhum resultado encontrado para "{searchTerm}".</p>
+            <p>Nenhum resultado encontrado para &quot;{searchTerm}&quot;.</p>
           )}
         </div>
       )}

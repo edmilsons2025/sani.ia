@@ -1,7 +1,5 @@
-import { DocxUploader } from '@/components/DocxUploader';
-import { ManualEditor } from '@/components/ManualEditor';
+
 import NcmSearchTest from '@/components/NcmSearch';
-import { Doc } from 'zod/v4/core';
 
 export default function HomePage() {
   return (
