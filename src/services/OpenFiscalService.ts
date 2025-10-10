@@ -35,20 +35,35 @@ export class OpenFiscalService {
   }
 
   public searchNcmByDescription(description: string): NcmData[] {
-    // Tratamento: remove pontos e monta a busca FTS5 (AND)
-    const termoBusca = description.trim().replace(/[.]/g, '').split(/\s+/).join(' AND ');
+    // Lista de palavras comuns (stopwords) que devem ser ignoradas na busca
+    const stopWords = ['de', 'da', 'do', 'e', 'a', 'o', 'para', 'em', 'um', 'uma'];
     
-    if (!termoBusca) return [];
+    // 1. Limpa o texto, remove pontuação e filtra termos curtos ou stopwords
+    const termos = description.trim()
+        .replace(/[.,]/g, '') 
+        .toLowerCase()
+        .split(/\s+/)
+        .filter(term => term.length >= 3 && !stopWords.includes(term));
 
+    if (termos.length === 0) {
+      // Se não houver termos válidos para buscar, retorna vazio
+      return []; 
+    }
+
+    // 2. Cria a string de busca: "termo1* OR termo2* OR termo3*"
+    // O operador OR e o prefixo * (coringa) tornam a busca muito mais flexível
+    const termoBusca = termos.map(term => `${term}*`).join(' OR ');
+
+    // 3. Executa a busca FTS5 otimizada
     const stmt = this.db.prepare(`
       SELECT DISTINCT ncm, descricao
       FROM ibpt_search
       WHERE descricao MATCH ?
       ORDER BY rank
-      LIMIT 15
+      LIMIT 25 
     `);
     
-    // 3. Correção 2: Coerção de tipo para informar o TypeScript sobre a estrutura de retorno
+    // Coerção de tipo para informar o TypeScript sobre a estrutura de retorno
     return stmt.all(termoBusca) as NcmData[];
   }
 
@@ -59,7 +74,7 @@ export class OpenFiscalService {
       WHERE ncm LIKE ?
       LIMIT 20
     `);
-    // 4. Correção 3: Coerção de tipo para informar o TypeScript sobre a estrutura de retorno
+    // Coerção de tipo para informar o TypeScript sobre a estrutura de retorno
     return stmt.all(`${prefix}%`) as NcmData[];
   }
 }
