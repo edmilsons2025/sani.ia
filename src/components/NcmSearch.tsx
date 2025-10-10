@@ -2,10 +2,11 @@
 
 import React, { useState } from 'react';
 
-// Define a estrutura esperada para o resultado do NCM (Ajustado para o que o Serviço retorna)
+// Define a estrutura esperada para o resultado do NCM
+// Note que o backend retorna 'ncm' e 'descricao'
 interface NcmResult {
-  ncm: string;      // Corresponde a item.ncm
-  descricao: string; // Corresponde a item.descricao
+  ncm: string;
+  descricao: string;
 }
 
 interface ApiResponse {
@@ -34,13 +35,15 @@ const NcmSearchTest: React.FC = () => {
     setError(null);
     
     try {
-      // 1. CHAMA O ENDPOINT DA API - AJUSTADO PARA USAR 'description'
+      // 1. CHAMA O ENDPOINT DA API
+      // CORREÇÃO: Parâmetro da URL mudado de 'name' para 'description'
       const url = `/api/ncm-search?description=${encodeURIComponent(searchTerm)}`;
       const response = await fetch(url);
 
       if (!response.ok) {
         // Trata erros HTTP, como o 500 ou 400
         const errorData = await response.json();
+        // A mensagem de erro da API agora é mais informativa
         throw new Error(errorData.error || `Erro HTTP: ${response.status}`);
       }
 
@@ -48,10 +51,11 @@ const NcmSearchTest: React.FC = () => {
       const data: ApiResponse = await response.json();
       setResults(data.results);
 
-    } catch (err: any) {
-      console.error('Erro na busca:', err);
+    } catch (err: unknown) { // CORREÇÃO DE LINTING: Usando 'unknown' em vez de 'any'
+      const e = err as Error; // Coerção segura para acessar a propriedade 'message'
+      console.error('Erro na busca:', e);
       setResults([]); // Limpa resultados anteriores
-      setError(err.message || 'Erro ao comunicar com a API de busca.');
+      setError(e.message || 'Erro ao comunicar com a API de busca.');
     } finally {
       setLoading(false);
     }
@@ -99,7 +103,7 @@ const NcmSearchTest: React.FC = () => {
                     background: '#f9f9f9'
                   }}
                 >
-                  {/* AJUSTADO: Usando item.ncm e item.descricao */}
+                  {/* ATUALIZAÇÃO DE PROPRIEDADES: Usando 'ncm' e 'descricao' do backend */}
                   <p style={{ margin: 0 }}>**NCM:** <code style={{ fontWeight: 'bold' }}>{item.ncm}</code></p>
                   <p style={{ margin: 0, fontSize: '0.9em' }}>**Descrição:** {item.descricao}</p>
                 </li>
