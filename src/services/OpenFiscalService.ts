@@ -12,8 +12,9 @@ export class OpenFiscalService {
   private db: Database.Database;
 
   private constructor() {
-    // CORREÇÃO FINAL PARA VERCEL: Usa a pasta /public, que é sempre incluída
-    // no ambiente de runtime. O arquivo será copiado para a raiz da função.
+    // CORREÇÃO CRÍTICA PARA VERCEL: 
+    // Garante que o caminho seja resolvido a partir da raiz do projeto, na pasta 'public',
+    // onde o Next.js garante que o arquivo estático será copiado.
     const dbPath = path.join(process.cwd(), 'public', 'openfiscal.db');
     
     try {
@@ -26,7 +27,7 @@ export class OpenFiscalService {
         console.error(`[OpenFiscalService] ERRO CRÍTICO ao abrir DB: ${error.message}`);
         console.error(`[OpenFiscalService] DB Path usado: ${dbPath}`);
         // Lança o erro, que será pego pelo route.ts e retornará o 500
-        throw new Error('Falha na inicialização do serviço fiscal: banco de dados indisponível. Confirme se o arquivo DB está em /public.');
+        throw new Error('Falha na inicialização do serviço fiscal: banco de dados indisponível no servidor.');
     }
   }
 
@@ -37,10 +38,9 @@ export class OpenFiscalService {
     return OpenFiscalService.instance;
   }
 
-  // Lógica de busca otimizada para FTS5 com prefixos
+  // Lógica de busca otimizada (FTS5 Prefix Search)
   public searchNcmByDescription(description: string): NcmData[] {
     
-    // Filtros para FTS5 (ignora palavras curtas e comuns)
     const stopWords = ['de', 'da', 'do', 'e', 'a', 'o', 'para', 'com'];
     
     const termos = description.trim()
@@ -53,7 +53,7 @@ export class OpenFiscalService {
         return []; 
     }
 
-    // Cria a query FTS5 usando operador OR e prefixo (*) para busca fuzzy: "termo1* OR termo2*..."
+    // "placa* OR mãe*"
     const termoBusca = termos.map(term => `${term}*`).join(' OR ');
 
     const stmt = this.db.prepare(`
