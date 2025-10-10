@@ -1,7 +1,7 @@
 import path from 'path';
 import Database from 'better-sqlite3';
 
-// 1. Define a interface esperada para os resultados da busca
+// Definição de tipos para o resultado da busca FTS5
 interface NcmData {
   ncm: string;
   descricao: string;
@@ -12,18 +12,22 @@ export class OpenFiscalService {
   private db: Database.Database;
 
   private constructor() {
+    // CORREÇÃO FINAL PARA VERCEL: 
+    // Garante que o caminho seja resolvido a partir da raiz do projeto (process.cwd())
+    // A Vercel empacota 'src/data' no diretório raiz do runtime da função.
     const dbPath = path.join(process.cwd(), 'src', 'data', 'openfiscal.db');
-
+    
     try {
-      // Abre o banco de dados em modo somente leitura (readonly: true)
-      this.db = new Database(dbPath, { readonly: true });
-      console.log(`[OpenFiscalService] Conexão SQLite estabelecida em: ${dbPath}`);
-    } catch (e: unknown) { // 2. Correção 1: Uso de 'unknown' em vez de 'any' para o catch
-      const error = e as Error; // Coerção segura para usar a propriedade 'message'
-      console.error(`[OpenFiscalService ERROR] Falha ao abrir o banco de dados em: ${dbPath}`);
-      console.error(`[OpenFiscalService ERROR] Detalhes: ${error.message}`);
-      // Lança o erro para ser pego pela API Route (gerando o 500)
-      throw new Error("Falha na inicialização do serviço fiscal. Verifique se o DB existe.");
+        console.log(`[OpenFiscalService] Tentando abrir banco de dados em: ${dbPath}`);
+        // Abrindo o banco de dados em modo somente leitura.
+        this.db = new Database(dbPath, { readonly: true });
+        console.log(`[OpenFiscalService] Conexão SQLite estabelecida com sucesso.`);
+    } catch (e: unknown) {
+        const error = e as Error;
+        console.error(`[OpenFiscalService] ERRO CRÍTICO ao abrir DB: ${error.message}`);
+        console.error(`[OpenFiscalService] DB Path usado: ${dbPath}`);
+        // Lança o erro, que será pego pelo route.ts e retornará o 500
+        throw new Error('Falha na inicialização do serviço fiscal: banco de dados indisponível.');
     }
   }
 
@@ -34,11 +38,12 @@ export class OpenFiscalService {
     return OpenFiscalService.instance;
   }
 
+  // Lógica de busca otimizada para FTS5 com prefixos (já aplicada nos passos anteriores)
   public searchNcmByDescription(description: string): NcmData[] {
-    // Lista de palavras comuns (stopwords) que devem ser ignoradas na busca
-    const stopWords = ['de', 'da', 'do', 'e', 'a', 'o', 'para', 'em', 'um', 'uma'];
     
-    // 1. Limpa o texto, remove pontuação e filtra termos curtos ou stopwords
+    // Filtros para FTS5 (ignora palavras curtas e comuns)
+    const stopWords = ['de', 'da', 'do', 'e', 'a', 'o', 'para', 'com'];
+    
     const termos = description.trim()
         .replace(/[.,]/g, '') 
         .toLowerCase()
@@ -46,25 +51,24 @@ export class OpenFiscalService {
         .filter(term => term.length >= 3 && !stopWords.includes(term));
 
     if (termos.length === 0) {
-      // Se não houver termos válidos para buscar, retorna vazio
-      return []; 
+        // Se a busca for muito curta/vazia, retorna vazio
+        return []; 
     }
 
-    // 2. Cria a string de busca: "termo1* OR termo2* OR termo3*"
-    // O operador OR e o prefixo * (coringa) tornam a busca muito mais flexível
+    // Cria a query FTS5 usando operador OR e prefixo (*) para busca fuzzy: "termo1* OR termo2*..."
     const termoBusca = termos.map(term => `${term}*`).join(' OR ');
 
-    // 3. Executa a busca FTS5 otimizada
+    // Nota: O método .all() do better-sqlite3 retorna um array de objetos tipados
     const stmt = this.db.prepare(`
       SELECT DISTINCT ncm, descricao
       FROM ibpt_search
       WHERE descricao MATCH ?
       ORDER BY rank
-      LIMIT 25 
+      LIMIT 25
     `);
     
-    // Coerção de tipo para informar o TypeScript sobre a estrutura de retorno
-    return stmt.all(termoBusca) as NcmData[];
+    // Força a tipagem de volta para NcmData[]
+    return stmt.all(termoBusca) as NcmData[]; 
   }
 
   public filterByPrefix(prefix: string): NcmData[] {
@@ -74,7 +78,7 @@ export class OpenFiscalService {
       WHERE ncm LIKE ?
       LIMIT 20
     `);
-    // Coerção de tipo para informar o TypeScript sobre a estrutura de retorno
+    // Força a tipagem de volta para NcmData[]
     return stmt.all(`${prefix}%`) as NcmData[];
   }
 }
