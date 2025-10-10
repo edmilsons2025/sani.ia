@@ -51,20 +51,24 @@ interface ExportedRow { // Interface adicionada para tipar dados de exportação
 }
 
 // --- Configuração de Caminhos ---
-// O __dirname aponta para 'src/scripts', então subimos um nível (..) e entramos em 'data'.
-const dataPath = path.join(__dirname, '..', 'data'); 
+// CORREÇÃO: Mapeia o caminho para a pasta 'public'
+const dataPath = path.join(process.cwd(), 'public'); 
 
-// Cria o diretório 'src/data' se ele não existir
+// Cria o diretório 'public' se ele não existir.
+// Usamos process.cwd() para garantir que a pasta seja criada na raiz do projeto.
 if (!fs.existsSync(dataPath)) {
     fs.mkdirSync(dataPath, { recursive: true });
     console.log(`Diretório de dados criado em: ${dataPath}`);
 }
 
+// Junta o caminho da pasta com o nome do arquivo
 const dbPath = path.join(dataPath, 'openfiscal.db');
 const metadataFilePath = path.join(dataPath, 'cest_metadata.json');
 
+
 const db = new Database(dbPath); // Usa o caminho completo para criar/acessar o DB
 db.pragma('journal_mode = WAL');
+
 
 function criarTabelas(): void {
   console.log('Verificando e criando tabelas, se necessário...');

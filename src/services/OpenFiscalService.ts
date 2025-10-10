@@ -12,10 +12,9 @@ export class OpenFiscalService {
   private db: Database.Database;
 
   private constructor() {
-    // CORREÇÃO FINAL PARA VERCEL: 
-    // Garante que o caminho seja resolvido a partir da raiz do projeto (process.cwd())
-    // A Vercel empacota 'src/data' no diretório raiz do runtime da função.
-    const dbPath = path.join(process.cwd(), 'src', 'data', 'openfiscal.db');
+    // CORREÇÃO FINAL PARA VERCEL: Usa a pasta /public, que é sempre incluída
+    // no ambiente de runtime. O arquivo será copiado para a raiz da função.
+    const dbPath = path.join(process.cwd(), 'public', 'openfiscal.db');
     
     try {
         console.log(`[OpenFiscalService] Tentando abrir banco de dados em: ${dbPath}`);
@@ -27,7 +26,7 @@ export class OpenFiscalService {
         console.error(`[OpenFiscalService] ERRO CRÍTICO ao abrir DB: ${error.message}`);
         console.error(`[OpenFiscalService] DB Path usado: ${dbPath}`);
         // Lança o erro, que será pego pelo route.ts e retornará o 500
-        throw new Error('Falha na inicialização do serviço fiscal: banco de dados indisponível.');
+        throw new Error('Falha na inicialização do serviço fiscal: banco de dados indisponível. Confirme se o arquivo DB está em /public.');
     }
   }
 
@@ -38,7 +37,7 @@ export class OpenFiscalService {
     return OpenFiscalService.instance;
   }
 
-  // Lógica de busca otimizada para FTS5 com prefixos (já aplicada nos passos anteriores)
+  // Lógica de busca otimizada para FTS5 com prefixos
   public searchNcmByDescription(description: string): NcmData[] {
     
     // Filtros para FTS5 (ignora palavras curtas e comuns)
@@ -51,14 +50,12 @@ export class OpenFiscalService {
         .filter(term => term.length >= 3 && !stopWords.includes(term));
 
     if (termos.length === 0) {
-        // Se a busca for muito curta/vazia, retorna vazio
         return []; 
     }
 
     // Cria a query FTS5 usando operador OR e prefixo (*) para busca fuzzy: "termo1* OR termo2*..."
     const termoBusca = termos.map(term => `${term}*`).join(' OR ');
 
-    // Nota: O método .all() do better-sqlite3 retorna um array de objetos tipados
     const stmt = this.db.prepare(`
       SELECT DISTINCT ncm, descricao
       FROM ibpt_search
@@ -67,7 +64,6 @@ export class OpenFiscalService {
       LIMIT 25
     `);
     
-    // Força a tipagem de volta para NcmData[]
     return stmt.all(termoBusca) as NcmData[]; 
   }
 
@@ -78,7 +74,6 @@ export class OpenFiscalService {
       WHERE ncm LIKE ?
       LIMIT 20
     `);
-    // Força a tipagem de volta para NcmData[]
     return stmt.all(`${prefix}%`) as NcmData[];
   }
 }
