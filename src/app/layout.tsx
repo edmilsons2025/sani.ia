@@ -1,5 +1,6 @@
 import './globals.css';
 import type { Metadata } from 'next';
+import { Sidebar } from '@/components/Sidebar';
 
 export const metadata: Metadata = {
   title: 'AI Maintenance Manual Generator (Next.js)',
@@ -13,7 +14,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR">
-      <body>{children}</body>
+      <body className="flex">
+        <Sidebar />
+        <main className="flex-grow p-8">{children}</main>
+      </body>
     </html>
   );
 }

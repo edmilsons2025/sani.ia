@@ -1,25 +1,21 @@
-// src/app/api/ncm-search/route.ts
-
 import { NextRequest, NextResponse } from 'next/server';
-// Importa o serviço que contém a lógica de busca e o índice Fuse.js
 import { NcmService } from '@/services/NcmService'; 
 
-/**
- * Endpoint da API para buscar NCM por nome (Fuzzy Search).
- *
- * Exemplo de uso: GET /api/ncm-search?name=celular
- * @param request NextRequest
- * @returns NextResponse com os resultados
- */
+// Endpoint da API para buscar NCM por nome (Fuzzy Search).
+//
+// Exemplo de uso: GET /api/ncm-search?name=celular
+// @param request NextRequest
+// @returns NextResponse com os resultados
+
 export async function GET(request: NextRequest) {
-    // 1. EXTRAI O PARÂMETRO 'name' DA URL
-    const { searchParams } = new URL(request.url);
-    const name = searchParams.get('name');
+    // 1. EXTRAI O PARÂMETRO 'description' DA URL
+    const searchParams = request.nextUrl.searchParams;
+    const description = searchParams.get('description');
 
     // 2. VALIDAÇÃO BÁSICA
-    if (!name || name.trim() === '') {
+    if (!description || description.trim() === '') {
         return NextResponse.json(
-            { error: 'Parâmetro "name" (palavra-chave de busca) é obrigatório.' }, 
+            { error: 'Parâmetro "description" (palavra-chave de busca) é obrigatório.' }, 
             { status: 400 }
         );
     }
@@ -30,13 +26,12 @@ export async function GET(request: NextRequest) {
 
         // 4. EXECUTA A BUSCA FUZZY
         // O serviço faz a busca rápida no índice de NCMs carregado localmente.
-        const results = await ncmService.search(name);
+        const apiResponse = await ncmService.search(description);
 
         // 5. RETORNA O RESULTADO COM SUCESSO
         return NextResponse.json({ 
-            query: name,
-            count: results.length,
-            results: results 
+            ...apiResponse,
+            query: description,
         });
 
     } catch (error) {
