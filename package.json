@@ -3,9 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -H 0.0.0.0 -p 3030",
+    "dev": "next dev -H 0.0.0.0 -p 3000",
     "build": "next build",
-    "generate-db": "ts-node src/scripts/generateDatabase.ts",
     "start": "next start",
     "lint": "eslint"
   },
@@ -13,6 +12,7 @@
     "@google-cloud/vertexai": "^1.10.0",
     "axios": "^1.12.2",
     "better-sqlite3": "^11.1.2",
+    "chart.js": "^4.5.1",
     "cheerio": "^1.1.2",
     "csvtojson": "^2.0.10",
     "fuse.js": "^7.1.0",
@@ -22,6 +22,7 @@
     "next": "15.5.4",
     "node-cron": "^3.0.3",
     "react": "19.1.0",
+    "react-chartjs-2": "^5.3.0",
     "react-dom": "19.1.0",
     "ts-node": "^10.9.2",
     "uuid": "^13.0.0",

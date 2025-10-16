@@ -410,7 +410,7 @@ export const NcmProcessor: React.FC = () => {
               placeholder="Ex: 1"
               value={headerLineIndex ?? ''}
               onChange={e => setHeaderLineIndex(parseInt(e.target.value) || null)}
-              className="w-32 p-2 border border-gray-300 rounded-md bg-white text-center text-lg font-mono"
+              className="w-32 p-2 border border-gray-300 rounded-md bg-white text-center text-gray-600 text-lg font-mono"
             />
 
             <div className="mt-6">
@@ -418,7 +418,7 @@ export const NcmProcessor: React.FC = () => {
                 Pré-visualização da Linha {headerLineIndex || '1'} (Valores separados por |):
               </p>
               <div className="bg-gray-100 p-3 rounded-md overflow-x-auto">
-                <code className="whitespace-nowrap text-xs">
+                <code className="whitespace-nowrap text-xs text-gray-700">
                   {rawSheetData[(headerLineIndex ?? 1) - 1]?.join(' | ') || 'Nenhuma linha para pré-visualizar.'}
                 </code>
               </div>
@@ -528,7 +528,6 @@ export const NcmProcessor: React.FC = () => {
             </button>
           </div>
         )}
-
       </div>
     </div>
   );

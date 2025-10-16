@@ -2,10 +2,11 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { ChevronDown, Search, Package, Home } from 'lucide-react';
+import { ChevronDown, Search, Package, Home, ClipboardList } from 'lucide-react';
 
 export function Sidebar() {
   const [isNcmOpen, setIsNcmOpen] = useState(true);
+  const [isTestesOpen, setIsTestesOpen] = useState(true);
 
   return (
     <aside className="w-64 h-screen bg-gray-800 text-white p-4 flex flex-col">
@@ -16,7 +17,8 @@ export function Sidebar() {
         </Link>
       </div>
       <nav className="flex-grow">
-        <ul>
+        <ul className="space-y-4">
+          {/* Menu NCM */}
           <li>
             <button
               onClick={() => setIsNcmOpen(!isNcmOpen)}
@@ -52,8 +54,19 @@ export function Sidebar() {
               </ul>
             )}
           </li>
+
+          {/* Menu Testes de Equipamentos (Padronizado) */}
+          <li>
+            <Link
+              href="/testes"
+              className="w-full flex items-center py-2 px-4 rounded-lg hover:bg-gray-700 focus:outline-none"
+            >
+              <span className="font-semibold">Testes de Equipamentos</span>
+            </Link>
+          </li>
         </ul>
       </nav>
     </aside>
   );
 }
+

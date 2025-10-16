@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ferramenta de Testes de Equipamentos</title>
+    <!-- Adicionando a biblioteca de gráficos Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f0f2f5;
+            color: #1c1e21;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1100px;
+            margin: auto;
+            background: #fff;
+            padding: 20px 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        nav {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            border-bottom: 1px solid #dddfe2;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+        .nav-btn {
+            background-color: #e7f3ff;
+            color: #1877f2;
+            border: 1px solid #1877f2;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        .nav-btn.active {
+            background-color: #1877f2;
+            color: #fff;
+        }
+        h1, h2, h3, h4 {
+            color: #1c1e21;
+            padding-bottom: 10px;
+        }
+        h1 { border-bottom: 2px solid #e7f3ff; }
+        h3 { border-top: 1px solid #eee; padding-top: 20px; margin-top: 30px;}
+
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; font-weight: bold; margin-bottom: 5px; }
+        .form-group input[type="text"],
+        .form-group input[type="date"],
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #dddfe2;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 16px;
+            background-color: #fff;
+        }
+        .btn {
+            display: inline-block;
+            background-color: #1877f2;
+            color: #fff;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            text-align: center;
+            width: 100%;
+            transition: background-color 0.2s;
+        }
+        .btn:hover { background-color: #166fe5; }
+        .btn-success { background-color: #42b72a; }
+        .btn-success:hover { background-color: #36a420; }
+        .btn-danger { background-color: #fa3e3e; }
+        .btn-danger:hover { background-color: #e02828; }
+        .btn-small { padding: 5px 10px; font-size: 12px; width: auto; }
+
+        .hidden { display: none; }
+
+        .device-info {
+            background-color: #e7f3ff;
+            border-left: 5px solid #1877f2;
+            padding: 15px;
+            margin: 25px 0;
+            border-radius: 4px;
+        }
+        .device-info p { margin: 5px 0; }
+        .device-info strong.lote-label { color: #1877f2;}
+
+        .test-item {
+            display: grid;
+            grid-template-columns: 2fr 1.2fr 3fr;
+            gap: 15px;
+            align-items: center;
+            padding: 15px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .lotes-list, .class-tests-list { list-style: none; padding: 0;}
+        .lotes-list li, .class-tests-list li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border: 1px solid #dddfe2;
+            border-radius: 6px;
+            margin-bottom: 10px;
+        }
+        .lotes-list .btn { width: auto; }
+
+        .class-editor {
+            border: 1px solid #dddfe2;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .class-editor h4 {
+             display: flex;
+             justify-content: space-between;
+             align-items: center;
+        }
+
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        .results-table th, .results-table td {
+            border: 1px solid #dddfe2;
+            padding: 12px;
+            text-align: left;
+        }
+        .results-table th { background-color: #f0f2f5; font-weight: bold; }
+        .status-cell-Aprovado { color: green; font-weight: bold;}
+        .status-cell-Reprovado { color: red; font-weight: bold;}
+
+        .filters {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            background-color: #f0f2f5;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        #chart-container {
+            margin-top: 30px;
+            padding: 20px;
+            border: 1px solid #dddfe2;
+            border-radius: 8px;
+        }
+        .active-lote-display {
+            background-color: #1877f2;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 6px;
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <nav>
+            <button id="nav-lotes" class="nav-btn active">Lotes</button>
+            <button id="nav-testes" class="nav-btn">Testes</button>
+            <button id="nav-relatorios" class="nav-btn">Relatórios</button>
+            <button id="nav-configuracoes" class="nav-btn">Configurações</button>
+        </nav>
+
+        <!-- PÁGINA 0: LOTES -->
+        <div id="lotes-page">
+            <h1>Gerenciar Lotes de Teste</h1>
+            <h3>Criar Novo Lote</h3>
+            <button id="btn-cria-novo-lote" class="btn">Criar Novo Lote com ID Automático</button>
+            <h3>Lotes Existentes</h3>
+            <ul id="lotes-list" class="lotes-list"></ul>
+        </div>
+
+        <!-- PÁGINA 1: IDENTIFICAÇÃO DO EQUIPAMENTO -->
+        <div id="identificacao-page" class="hidden">
+            <h1>Adicionar Equipamento</h1>
+            <div id="active-lote-display-identificacao" class="active-lote-display"></div>
+            <form id="form-identificacao">
+                <div class="form-group">
+                    <label for="tipo_equipamento">Tipo de Equipamento (Classe)</label>
+                    <select id="tipo_equipamento" name="tipo_equipamento" required></select>
+                </div>
+                <div class="form-group">
+                    <label for="sku">SKU do Equipamento</label>
+                    <input type="text" id="sku" name="sku" placeholder="Ex: 11194480" required>
+                </div>
+                <div class="form-group">
+                    <label for="barebone">Barebone / Modelo</label>
+                    <input type="text" id="barebone" name="barebone" placeholder="Ex: PST-NVR-30126-P" required>
+                </div>
+                <div class="form-group">
+                    <label for="numero_serie">Número de Série (S/N)</label>
+                    <input type="text" id="numero_serie" name="numero_serie" placeholder="Ex: ABC123456DEF" required>
+                </div>
+                <button type="submit" class="btn">Iniciar Checklist de Testes</button>
+            </form>
+        </div>
+
+        <!-- PÁGINA 2: CHECKLIST DE TESTES -->
+        <div id="checklist-page" class="hidden">
+            <h1>Checklist de Testes</h1>
+            <div class="device-info">
+                <h2>Informações do Equipamento</h2>
+                 <p><strong class="lote-label">Lote de Teste:</strong> <span id="display-lote-id"></span></p>
+                <p><strong>Tipo:</strong> <span id="display-tipo-equipamento"></span></p>
+                <p><strong>SKU:</strong> <span id="display-sku"></span></p>
+                <p><strong>Barebone:</strong> <span id="display-barebone"></span></p>
+                <p><strong>S/N:</strong> <span id="display-numero-serie"></span></p>
+            </div>
+            <form id="form-checklist">
+                 <div class="final-summary" style="margin-top: 20px;">
+                    <label for="obs_geral"><strong>Observações Gerais do Teste</strong></label>
+                    <textarea id="obs_geral" name="obs_geral" style="width: 100%; min-height: 80px; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;"></textarea>
+                </div>
+                <button type="submit" class="btn btn-success" style="margin-top: 20px;">Finalizar e Salvar Relatório</button>
+            </form>
+        </div>
+
+        <!-- PÁGINA 3: RESULTADOS -->
+        <div id="relatorios-page" class="hidden">
+            <h1>Relatórios e Histórico de Testes</h1>
+            <div class="filters">
+                <div class="form-group">
+                    <label for="filter-start-date">Data Início</label>
+                    <input type="date" id="filter-start-date">
+                </div>
+                <div class="form-group">
+                    <label for="filter-end-date">Data Fim</label>
+                    <input type="date" id="filter-end-date">
+                </div>
+                 <div class="form-group">
+                    <label for="filter-lote">Lote de Teste</label>
+                    <select id="filter-lote"><option value="">Todos</option></select>
+                </div>
+                <div class="form-group">
+                    <label for="filter-tipo">Tipo Equipamento</label>
+                    <select id="filter-tipo"><option value="">Todos</option></select>
+                </div>
+                 <div class="form-group">
+                    <label for="filter-barebone">Modelo (Barebone)</label>
+                    <select id="filter-barebone"><option value="">Todos</option></select>
+                </div>
+            </div>
+            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                <button id="export-csv-btn" class="btn">Exportar para CSV (Filtrado)</button>
+                <button id="clear-data-btn" class="btn btn-danger">Limpar Histórico</button>
+            </div>
+            <div id="chart-container">
+                <h3>Gráfico de Falhas (com base nos filtros)</h3>
+                <canvas id="failure-chart"></canvas>
+            </div>
+            <h3>Relatório Detalhado (com base nos filtros)</h3>
+            <div style="overflow-x: auto;">
+                <table class="results-table">
+                    <thead>
+                        <tr>
+                            <th>Data</th><th>Lote</th><th>Tipo</th><th>SKU</th><th>Barebone</th><th>S/N</th><th>Resultado Geral</th><th>Detalhes</th>
+                        </tr>
+                    </thead>
+                    <tbody id="results-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- PÁGINA 4: CONFIGURAÇÕES -->
+        <div id="configuracoes-page" class="hidden">
+            <h1>Configurar Classes de Equipamentos e Testes</h1>
+            <div class="form-group">
+                <h3>Adicionar Nova Classe de Equipamento</h3>
+                <form id="form-add-class" style="display: flex; gap: 10px;">
+                    <input type="text" id="new-class-name" placeholder="Ex: Notebook, Smartphone" required style="flex-grow: 1;">
+                    <button type="submit" class="btn" style="width: auto;">Adicionar Classe</button>
+                </form>
+            </div>
+            <div id="class-editor-container"></div>
+        </div>
+    </div>
+
+    <script>
+        // Elementos DOM
+        const pages = {
+            lotes: document.getElementById('lotes-page'),
+            identificacao: document.getElementById('identificacao-page'),
+            checklist: document.getElementById('checklist-page'),
+            relatorios: document.getElementById('relatorios-page'),
+            configuracoes: document.getElementById('configuracoes-page')
+        };
+        const nav = {
+            lotes: document.getElementById('nav-lotes'),
+            testes: document.getElementById('nav-testes'),
+            relatorios: document.getElementById('nav-relatorios'),
+            configuracoes: document.getElementById('nav-configuracoes')
+        };
+        const forms = {
+            identificacao: document.getElementById('form-identificacao'),
+            checklist: document.getElementById('form-checklist'),
+            addClass: document.getElementById('form-add-class')
+        };
+        const filters = {
+            start: document.getElementById('filter-start-date'),
+            end: document.getElementById('filter-end-date'),
+            lote: document.getElementById('filter-lote'),
+            tipo: document.getElementById('filter-tipo'),
+            barebone: document.getElementById('filter-barebone')
+        };
+        const [exportCsvBtn, clearDataBtn] = [document.getElementById('export-csv-btn'), document.getElementById('clear-data-btn')];
+        const btnCriaNovoLote = document.getElementById('btn-cria-novo-lote');
+
+        // Estado da Aplicação
+        let currentTest = JSON.parse(localStorage.getItem('currentTest')) || {};
+        let allTests = JSON.parse(localStorage.getItem('allTests')) || [];
+        let activeLoteId = localStorage.getItem('activeLoteId') || null;
+        let testClasses = JSON.parse(localStorage.getItem('testClasses')) || {
+            'NVR/XVR': [
+                { id: 'alimentacao', name: 'Alimentação', desc: 'Verificar se o equipamento liga com a fonte padrão.' },
+                { id: 'video', name: 'Saída de Vídeo (HDMI/VGA)', desc: 'Testar a exibição de imagem em um monitor.' },
+                { id: 'rede', name: 'Conexão de Rede (LAN)', desc: 'Verificar se o LED da porta acende e se o IP é atribuído.' },
+                { id: 'canais', name: 'Canais de Vídeo', desc: 'Conectar câmeras e verificar a imagem em todos os canais.' },
+                { id: 'hdd', name: 'Gravação e HDD', desc: 'Verificar se o HD é reconhecido e se a gravação inicia.' },
+                { id: 'app', name: 'Conexão com App (P2P)', desc: 'Ler QR Code e verificar se o dispositivo fica online no app.' },
+                { id: 'usb', name: 'Portas USB', desc: 'Testar funcionamento com mouse e backup em pendrive.' }
+            ]
+        };
+        let failureChart = null;
+
+        // Funções de Persistência
+        const saveData = () => {
+            localStorage.setItem('currentTest', JSON.stringify(currentTest));
+            localStorage.setItem('allTests', JSON.stringify(allTests));
+            localStorage.setItem('testClasses', JSON.stringify(testClasses));
+            if (activeLoteId) {
+                localStorage.setItem('activeLoteId', activeLoteId);
+            } else {
+                localStorage.removeItem('activeLoteId');
+            }
+        };
+        
+        const generateNewLoteId = () => {
+            const today = new Date();
+            const datePrefix = `${String(today.getDate()).padStart(2, '0')}${String(today.getMonth() + 1).padStart(2, '0')}${today.getFullYear()}`;
+            const lotesToday = new Set(allTests.map(t => t.equipamento.lote_id).filter(id => id && id.startsWith(datePrefix)));
+            return `${datePrefix}-${String(lotesToday.size + 1).padStart(3, '0')}`;
+        };
+
+        const showPage = (pageKey) => {
+            Object.values(pages).forEach(page => page.classList.add('hidden'));
+            pages[pageKey].classList.remove('hidden');
+            Object.values(nav).forEach(btn => btn.classList.remove('active'));
+            
+            nav[pageKey]?.classList.add('active');
+
+            switch(pageKey) {
+                case 'relatorios':
+                    updateResultsView();
+                    break;
+                case 'lotes':
+                    renderLotesList();
+                    break;
+                case 'configuracoes':
+                    renderConfigPage();
+                    break;
+                case 'identificacao':
+                    nav.testes.classList.add('active'); // Keep testes nav active
+                    populateTipoEquipamentoDropdown();
+                    break;
+                case 'checklist':
+                     nav.testes.classList.add('active');
+                     break;
+            }
+        };
+        
+        // --- Funções de Configuração ---
+        const renderConfigPage = () => {
+            const container = document.getElementById('class-editor-container');
+            container.innerHTML = '';
+            for (const className in testClasses) {
+                const editorDiv = document.createElement('div');
+                editorDiv.className = 'class-editor';
+                
+                let testsHtml = '<ul class="class-tests-list">';
+                testClasses[className].forEach((test, index) => {
+                    testsHtml += `<li><span><strong>${test.name}</strong>: ${test.desc}</span><button class="btn btn-danger btn-small" data-class="${className}" data-index="${index}">Remover</button></li>`;
+                });
+                testsHtml += '</ul>';
+
+                editorDiv.innerHTML = `
+                    <h4>${className} <button class="btn btn-danger btn-small" data-class-delete="${className}">Excluir Classe</button></h4>
+                    ${testsHtml}
+                    <form class="form-add-test">
+                        <input type="hidden" name="className" value="${className}">
+                        <div style="display: flex; gap: 10px; margin-top: 10px;">
+                            <input type="text" name="testName" placeholder="Nome do Teste (Ex: Teclado)" required>
+                            <input type="text" name="testDesc" placeholder="Descrição do Teste" required style="flex-grow: 1;">
+                            <button type="submit" class="btn" style="width: auto;">Adicionar Teste</button>
+                        </div>
+                    </form>
+                `;
+                container.appendChild(editorDiv);
+            }
+            // Add event listeners after rendering
+            container.querySelectorAll('.btn-danger[data-index]').forEach(btn => btn.addEventListener('click', handleRemoveTest));
+            container.querySelectorAll('.btn-danger[data-class-delete]').forEach(btn => btn.addEventListener('click', handleRemoveClass));
+            container.querySelectorAll('.form-add-test').forEach(form => form.addEventListener('submit', handleAddTest));
+        };
+
+        const handleAddTest = (e) => {
+            e.preventDefault();
+            const form = e.target;
+            const className = form.className.value;
+            const testName = form.testName.value;
+            const testDesc = form.testDesc.value;
+            const testId = testName.toLowerCase().replace(/[^a-z0-9]/g, '');
+            
+            if (testClasses[className].some(t => t.id === testId)) {
+                alert('Um teste com um ID similar já existe para esta classe.');
+                return;
+            }
+
+            testClasses[className].push({ id: testId, name: testName, desc: testDesc });
+            saveData();
+            renderConfigPage();
+        };
+
+        const handleRemoveTest = (e) => {
+            const { class: className, index } = e.target.dataset;
+            if (confirm(`Tem certeza que deseja remover este teste da classe "${className}"?`)) {
+                testClasses[className].splice(index, 1);
+                saveData();
+                renderConfigPage();
+            }
+        };
+
+        const handleRemoveClass = (e) => {
+            const className = e.target.dataset.classDelete;
+            if (confirm(`Tem certeza que deseja excluir toda a classe de equipamento "${className}" e seus testes?`)) {
+                delete testClasses[className];
+                saveData();
+                renderConfigPage();
+            }
+        };
+        
+        const populateTipoEquipamentoDropdown = () => {
+            const select = document.getElementById('tipo_equipamento');
+            select.innerHTML = '<option value="" disabled selected>-- Selecione o tipo --</option>';
+            for(const className in testClasses) {
+                select.innerHTML += `<option value="${className}">${className}</option>`;
+            }
+        };
+
+        const generateChecklistItems = (tipoEquipamento) => {
+            const form = forms.checklist;
+            // Remove old items
+            form.querySelectorAll('.test-item').forEach(item => item.remove());
+
+            const checklistContainer = document.createDocumentFragment();
+            const config = testClasses[tipoEquipamento] || [];
+            
+            const header = document.createElement('div');
+            header.className = 'test-item';
+            header.style.fontWeight = 'bold';
+            header.innerHTML = `<div>Item de Teste</div><div>Status</div><div>Observações</div>`;
+            checklistContainer.appendChild(header);
+
+            config.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'test-item';
+                div.innerHTML = `
+                    <div><strong>${item.name}</strong><br><small>${item.desc}</small></div>
+                    <div class="status-options">
+                        <label><input type="radio" name="status_${item.id}" value="Aprovado" required> Aprovado</label>
+                        <label><input type="radio" name="status_${item.id}" value="Reprovado"> Reprovado</label>
+                    </div>
+                    <div><input type="text" name="obs_${item.id}" placeholder="Observações (opcional)"></div>`;
+                checklistContainer.appendChild(div);
+            });
+            const finalSummary = form.querySelector('.final-summary');
+            form.insertBefore(checklistContainer, finalSummary);
+        };
+        
+        // --- Funções Principais (Lotes, Testes, Relatórios) ---
+        const renderLotesList = () => {
+            const lotesList = document.getElementById('lotes-list');
+            lotesList.innerHTML = '';
+            const lotes = [...new Set(allTests.map(t => t.equipamento.lote_id))].sort().reverse();
+            if (lotes.length === 0) {
+                lotesList.innerHTML = '<li>Nenhum lote criado ainda.</li>';
+                return;
+            }
+            lotes.forEach(lote => {
+                const li = document.createElement('li');
+                li.innerHTML = `<span>${lote}</span><button class="btn">Selecionar Lote</button>`;
+                li.querySelector('button').addEventListener('click', () => {
+                    activeLoteId = lote;
+                    saveData();
+                    document.getElementById('active-lote-display-identificacao').textContent = `Lote Ativo: ${activeLoteId}`;
+                    showPage('identificacao');
+                });
+                lotesList.appendChild(li);
+            });
+        };
+
+        const updateResultsView = () => {
+            populateFilterOptions();
+            const filteredData = getFilteredData();
+            renderResultsTable(filteredData);
+            renderFailureChart(filteredData);
+        };
+
+        const populateFilterOptions = () => {
+            filters.lote.innerHTML = '<option value="">Todos</option>' + [...new Set(allTests.map(t => t.equipamento.lote_id))].map(l => `<option value="${l}">${l}</option>`).join('');
+            filters.tipo.innerHTML = '<option value="">Todos</option>' + Object.keys(testClasses).map(c => `<option value="${c}">${c}</option>`).join('');
+            filters.barebone.innerHTML = '<option value="">Todos</option>' + [...new Set(allTests.map(t => t.equipamento.barebone))].map(b => `<option value="${b}">${b}</option>`).join('');
+        };
+        
+        const getFilteredData = () => {
+            return allTests.filter(test => {
+                const start = filters.start.value ? new Date(filters.start.value).setHours(0,0,0,0) : null;
+                const end = filters.end.value ? new Date(filters.end.value).setHours(23,59,59,999) : null;
+                const testDate = new Date(test.timestamp).getTime();
+                return (!start || testDate >= start) &&
+                       (!end || testDate <= end) &&
+                       (!filters.lote.value || test.equipamento.lote_id === filters.lote.value) &&
+                       (!filters.tipo.value || test.equipamento.tipo_equipamento === filters.tipo.value) &&
+                       (!filters.barebone.value || test.equipamento.barebone === filters.barebone.value);
+            });
+        };
+
+        const renderResultsTable = (data) => {
+            const tbody = document.getElementById('results-tbody');
+            tbody.innerHTML = data.length === 0 ? `<tr><td colspan="8">Nenhum resultado encontrado.</td></tr>` : data.map(test => {
+                const isReprovado = Object.values(test.testes).some(item => item.status === 'Reprovado');
+                const resultadoGeral = isReprovado ? 'Reprovado' : 'Aprovado';
+                let detailsHtml = '<ul>' + Object.values(test.testes).map(item => `<li><strong>${item.name}:</strong> ${item.status} ${item.observacao ? `(${item.observacao})` : ''}</li>`).join('') + '</ul>';
+                if(test.observacoes_gerais) detailsHtml += `<p><strong>Obs. Gerais:</strong> ${test.observacoes_gerais}</p>`;
+                
+                return `<tr>
+                    <td>${new Date(test.timestamp).toLocaleString('pt-BR')}</td>
+                    <td>${test.equipamento.lote_id}</td>
+                    <td>${test.equipamento.tipo_equipamento}</td>
+                    <td>${test.equipamento.sku}</td>
+                    <td>${test.equipamento.barebone}</td>
+                    <td>${test.equipamento.numero_serie}</td>
+                    <td class="status-cell-${resultadoGeral}">${resultadoGeral}</td>
+                    <td>${detailsHtml}</td>
+                </tr>`;
+            }).join('');
+        };
+
+        const renderFailureChart = (data) => {
+            if (failureChart) failureChart.destroy();
+            if (data.length === 0) return;
+            const ctx = document.getElementById('failure-chart').getContext('2d');
+            
+            const failureCounts = {};
+            data.forEach(test => {
+                for (const testId in test.testes) {
+                    if (test.testes[testId].status === 'Reprovado') {
+                        const testName = test.testes[testId].name;
+                        failureCounts[testName] = (failureCounts[testName] || 0) + 1;
+                    }
+                }
+            });
+
+            failureChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(failureCounts),
+                    datasets: [{
+                        label: 'Número de Reprovações',
+                        data: Object.values(failureCounts),
+                        backgroundColor: 'rgba(250, 62, 62, 0.6)',
+                        borderColor: 'rgba(224, 40, 40, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: { scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+            });
+        };
+        
+        // Event Listeners
+        btnCriaNovoLote.addEventListener('click', () => {
+            activeLoteId = generateNewLoteId();
+            saveData();
+            document.getElementById('active-lote-display-identificacao').textContent = `Lote Ativo: ${activeLoteId}`;
+            showPage('identificacao');
+        });
+
+        forms.identificacao.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            currentTest.equipamento = Object.fromEntries(formData.entries());
+            currentTest.equipamento.lote_id = activeLoteId;
+            generateChecklistItems(currentTest.equipamento.tipo_equipamento);
+            saveData();
+            Object.entries(currentTest.equipamento).forEach(([key, value]) => {
+                const displayEl = document.getElementById(`display-${key.replace(/_/g, '-')}`);
+                if (displayEl) displayEl.textContent = value;
+            });
+            showPage('checklist');
+        });
+
+        forms.checklist.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const tipo = currentTest.equipamento.tipo_equipamento;
+            const testResult = {
+                equipamento: currentTest.equipamento,
+                timestamp: new Date().toISOString(),
+                testes: {},
+                observacoes_gerais: formData.get('obs_geral')
+            };
+
+            testClasses[tipo].forEach(item => {
+                testResult.testes[item.id] = {
+                    name: item.name,
+                    status: formData.get(`status_${item.id}`),
+                    observacao: formData.get(`obs_${item.id}`) || ''
+                };
+            });
+
+            allTests.push(testResult);
+            forms.identificacao.reset();
+            forms.checklist.reset();
+            currentTest = {};
+            saveData();
+            alert('Relatório salvo! Adicione o próximo equipamento do lote.');
+            document.getElementById('active-lote-display-identificacao').textContent = `Lote Ativo: ${activeLoteId}`;
+            showPage('identificacao');
+        });
+        
+        forms.addClass.addEventListener('submit', e => {
+            e.preventDefault();
+            const input = document.getElementById('new-class-name');
+            const className = input.value.trim();
+            if(className && !testClasses[className]) {
+                testClasses[className] = [];
+                saveData();
+                renderConfigPage();
+                input.value = '';
+            } else {
+                alert('Nome de classe inválido ou já existente.');
+            }
+        });
+
+        Object.values(filters).forEach(filter => filter.addEventListener('change', updateResultsView));
+        nav.lotes.addEventListener('click', () => showPage('lotes'));
+        nav.testes.addEventListener('click', () => {
+            if (!activeLoteId) {
+                alert('Por favor, crie ou selecione um lote primeiro na aba "Lotes".');
+                showPage('lotes');
+            } else {
+                 document.getElementById('active-lote-display-identificacao').textContent = `Lote Ativo: ${activeLoteId}`;
+                showPage('identificacao');
+            }
+        });
+        nav.relatorios.addEventListener('click', () => showPage('relatorios'));
+        nav.configuracoes.addEventListener('click', () => showPage('configuracoes'));
+        
+        clearDataBtn.addEventListener('click', () => {
+            if (confirm('Tem certeza que deseja apagar TODO o histórico e TODAS as configurações de classes?')) {
+                allTests = []; currentTest = {}; activeLoteId = null; testClasses = {};
+                localStorage.clear();
+                alert('Todos os dados foram limpos.');
+                window.location.reload();
+            }
+        });
+
+        exportCsvBtn.addEventListener('click', () => {
+            const dataToExport = getFilteredData();
+            if (dataToExport.length === 0) return alert('Não há dados para exportar.');
+
+            const masterHeaders = new Set();
+            dataToExport.forEach(test => Object.values(test.testes).forEach(item => masterHeaders.add(item.name)));
+            
+            let csvContent = "data:text/csv;charset=utf-8,";
+            const baseHeaders = ["Data", "Lote", "Tipo", "SKU", "Barebone", "S/N"];
+            const testHeaders = [...masterHeaders].sort();
+            csvContent += [...baseHeaders, ...testHeaders.map(h => `Status ${h}`), ...testHeaders.map(h => `Obs ${h}`), "Obs Gerais"].join(",") + "\r\n";
+
+            dataToExport.forEach(test => {
+                let row = [
+                    new Date(test.timestamp).toLocaleString('pt-BR'), `"${test.equipamento.lote_id}"`,
+                    `"${test.equipamento.tipo_equipamento}"`, `"${test.equipamento.sku}"`,
+                    `"${test.equipamento.barebone}"`, `"${test.equipamento.numero_serie}"`
+                ];
+                const testMap = new Map(Object.values(test.testes).map(t => [t.name, t]));
+                row.push(...testHeaders.map(h => `"${testMap.get(h)?.status || ''}"`));
+                row.push(...testHeaders.map(h => `"${(testMap.get(h)?.observacao || '').replace(/"/g, '""')}"`));
+                row.push(`"${(test.observacoes_gerais || '').replace(/"/g, '""')}"`);
+                csvContent += row.join(",") + "\r\n";
+            });
+
+            const link = document.createElement("a");
+            link.setAttribute("href", encodeURI(csvContent));
+            link.setAttribute("download", "relatorio_testes.csv");
+            link.click();
+        });
+
+        // Inicialização
+        window.onload = () => {
+            showPage('lotes');
+        };
+    </script>
+</body>
+</html>
+
