@@ -58,7 +58,7 @@ export function Sidebar() {
           {/* Menu Testes de Equipamentos (Padronizado) */}
           <li>
             <Link
-              href="/testes"
+              href="/tms"
               className="w-full flex items-center py-2 px-4 rounded-lg hover:bg-gray-700 focus:outline-none"
             >
               <span className="font-semibold">Testes de Equipamentos</span>
