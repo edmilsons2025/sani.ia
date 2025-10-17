@@ -15,7 +15,7 @@ export class NcmService {
 
   private constructor() {
     // Garante que a URL da API seja lida de variáveis de ambiente
-    this.apiUrl = process.env.NEXT_PUBLIC_NCM_API_URL || 'http://127.0.0.1:8000';
+    this.apiUrl = process.env.NEXT_PUBLIC_NCM_API_URL || 'http://risetech.dns.army:8000';
     if (!this.apiUrl) {
       console.error("A URL da API NCM não está configurada em NEXT_PUBLIC_NCM_API_URL");
     }
