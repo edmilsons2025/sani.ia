@@ -12,7 +12,6 @@ export function Sidebar() {
     <aside className="w-64 h-screen bg-gray-800 text-white p-4 flex flex-col">
       <div className="mb-10">
         <Link href="/" className="text-2xl font-bold flex items-center gap-2">
-          <Home size={24} />
           <h1>Sani.IA</h1>
         </Link>
       </div>

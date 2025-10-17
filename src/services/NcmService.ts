@@ -1,12 +1,21 @@
 // src/services/NcmService.ts
+import axios from 'axios';
+import { z } from 'zod';
+
+// --- Zod Schema for Validation ---
+const NcmResultSchema = z.object({
+  ncm: z.string(),
+  descricao: z.string(),
+  score: z.number(),
+  source: z.string(),
+});
+
+const ApiResponseSchema = z.object({
+  results: z.array(NcmResultSchema),
+});
 
 // --- Tipagem ---
-export interface NcmResultFromApi {
-  ncm: string;
-  descricao: string;
-  score: number;
-  source: string;
-}
+export type NcmResultFromApi = z.infer<typeof NcmResultSchema>;
 
 // --- Classe de Serviço (Padrão Singleton) ---
 export class NcmService {
@@ -36,13 +45,28 @@ export class NcmService {
    * @param description A descrição do produto.
    */
   public async search(description: string): Promise<NcmResultFromApi[]> {
-    const url = `${this.apiUrl}/api/ncm-search?description=${encodeURIComponent(description)}`;
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`Falha na busca de NCM: ${response.statusText}`);
+    try {
+      const url = `${this.apiUrl}/api/ncm-search`;
+      const response = await axios.get(url, {
+        params: { description },
+      });
+
+      // Valida e parseia a resposta da API com Zod
+      const validatedData = ApiResponseSchema.parse(response.data);
+      return validatedData.results;
+
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        console.error('Erro na busca de NCM (Axios):', error.response?.data || error.message);
+        throw new Error(`Falha na busca de NCM: ${error.response?.data?.error || error.message}`);
+      } else if (error instanceof z.ZodError) {
+        console.error('Erro de validação da resposta da API NCM:', error.issues);
+        throw new Error('A resposta da API de NCM está em um formato inesperado.');
+      } else {
+        console.error('Erro inesperado na busca de NCM:', error);
+        throw new Error('Ocorreu um erro inesperado ao buscar o NCM.');
+      }
     }
-    const data = await response.json();
-    return data.results || [];
   }
 
   /**
@@ -52,19 +76,21 @@ export class NcmService {
    * @param ncm O objeto NCMResultFromApi que foi selecionado manualmente.
    */
   public async submitSuggestion(originalQuery: string, ncm: Omit<NcmResultFromApi, 'score' | 'source'>): Promise<void> {
-    const url = `${this.apiUrl}/api/ncm-suggestion`;
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+    try {
+      const url = `${this.apiUrl}/api/ncm-suggestion`;
+      await axios.post(url, {
         original_query: originalQuery,
         ncm: ncm.ncm,
         descricao: ncm.descricao,
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Falha ao enviar sugestão: ${response.statusText}`);
+      });
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        console.error('Erro ao enviar sugestão (Axios):', error.response?.data || error.message);
+        throw new Error(`Falha ao enviar sugestão: ${error.response?.data?.error || error.message}`);
+      } else {
+        console.error('Erro inesperado ao enviar sugestão:', error);
+        throw new Error('Ocorreu um erro inesperado ao enviar a sugestão.');
+      }
     }
   }
 }

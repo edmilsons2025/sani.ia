@@ -99,10 +99,14 @@ export const NcmSearch: React.FC = () => {
 
       const data: ApiResponse = await response.json();
       setResults(data.results);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Erro na busca inicial:', err);
       setResults([]);
-      setError(err.message || 'Erro ao comunicar com a API de busca.');
+      if (err instanceof Error) {
+        setError(err.message || 'Erro ao comunicar com a API de busca.');
+      } else {
+        setError('Ocorreu um erro desconhecido.');
+      }
     } finally {
       setLoading(false);
     }
@@ -131,10 +135,14 @@ export const NcmSearch: React.FC = () => {
 
       const data: ApiResponse = await response.json();
       setManualResults(data.results);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Erro na busca manual:', err);
       setManualResults([]);
-      setManualError(err.message || 'Erro ao buscar manualmente.');
+      if (err instanceof Error) {
+        setManualError(err.message || 'Erro ao buscar manualmente.');
+      } else {
+        setManualError('Ocorreu um erro desconhecido.');
+      }
     } finally {
       setManualLoading(false);
     }
@@ -276,7 +284,7 @@ export const NcmSearch: React.FC = () => {
                 renderResultsList(results, handleSelectNcm)
             ) : (
               <p className="text-gray-500 text-center py-4">
-                Nenhum resultado encontrado para "{searchTerm}".
+                Nenhum resultado encontrado para &quot;{searchTerm}&quot;.
               </p>
             )}
             <div className="mt-6 text-center">
@@ -336,7 +344,7 @@ export const NcmSearch: React.FC = () => {
                         <div className="mt-4 border-t pt-4">
                            {suggestionStatus === 'idle' && (
                              <>
-                               <p className="text-sm text-gray-600 mb-2">Esta é a classificação correta para "<b>{searchTerm}</b>"? Ajude-nos a melhorar.</p>
+                               <p className="text-sm text-gray-600 mb-2">Esta é a classificação correta para &quot;<b>{searchTerm}</b>&quot;? Ajude-nos a melhorar.</p>
                                <button onClick={handleSuggestionSubmit} className="px-4 py-2 bg-emerald-600 text-white font-semibold rounded-md shadow-sm hover:bg-emerald-700">
                                  Sugerir esta classificação
                                </button>

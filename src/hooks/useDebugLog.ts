@@ -12,7 +12,7 @@ export const useDebugLog = (prefix: string = 'NCM_PROC') => {
     }, []);
 
     // Função que só loga se o debug estiver ativo
-    const log = useCallback((message: string, ...data: any[]) => {
+    const log = useCallback((message: string, ...data: unknown[]) => {
         if (isDebugEnabled) {
             // Usamos console.log para logs informativos
             console.log(`[${prefix}] ${message}`, ...data);
@@ -20,14 +20,14 @@ export const useDebugLog = (prefix: string = 'NCM_PROC') => {
     }, [isDebugEnabled, prefix]);
 
     // Função para logar avisos (sempre loga, mas com destaque)
-    const warn = useCallback((message: string, ...data: any[]) => {
+    const warn = useCallback((message: string, ...data: unknown[]) => {
         // Usamos console.warn para alertas
         console.warn(`[${prefix} WARN] ${message}`, ...data);
     }, [prefix]);
 
 
     // Função para logar erros críticos (sempre loga, mas com prefixo)
-    const error = useCallback((message: string, ...data: any[]) => {
+    const error = useCallback((message: string, ...data: unknown[]) => {
         // Usamos console.error para erros
         console.error(`[${prefix} ERROR] ${message}`, ...data);
     }, [prefix]);

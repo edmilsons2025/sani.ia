@@ -19,7 +19,7 @@ export default function FerramentaDeTestePage() {
       case 'testes':
         return <TestesPage testData={testData} setActiveView={setActiveView} />;
       case 'relatorios':
-        return <RelatoriosPage testData={testData} />;
+        return <RelatoriosPage testData={{ allTests: testData.allTests, testClasses: testData.testClasses }} />;
       case 'configuracoes':
         return <ConfiguracoesPage testData={testData} />;
       default:
