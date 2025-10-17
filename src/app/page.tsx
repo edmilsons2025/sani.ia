@@ -3,7 +3,7 @@
 import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { NcmSearch } from '@/components/NcmSearch';
-import { NcmProcessor } from '@/components/NcmProcessor';
+import NcmProcessor from '@/app/ncm/page';
 import Link from 'next/link';
 import { Search, Package } from 'lucide-react';
 

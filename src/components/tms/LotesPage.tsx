@@ -79,12 +79,11 @@ export default function LotesPage({ testData, setActiveView }: LotesPageProps) {
 
       {/* Seção para criação de um novo lote */}
       <div className="mb-8">
-        <h3 className="text-lg font-semibold text-gray-700 mb-2">Criar Novo Lote</h3>
         <button
           onClick={createNewLote}
           className="w-full py-3 px-4 bg-blue-600 text-white font-semibold rounded-md shadow-sm hover:bg-blue-700"
         >
-          Criar Novo Lote com ID Automático
+          Criar Novo Lote
         </button>
       </div>
 

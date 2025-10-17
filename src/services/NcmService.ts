@@ -1,70 +1,70 @@
+// src/services/NcmService.ts
+
+// --- Tipagem ---
 export interface NcmResultFromApi {
-    ncm: string;
-    descricao: string;
-    score: number;
-    source: string;
+  ncm: string;
+  descricao: string;
+  score: number;
+  source: string;
 }
 
-class NcmService {
-    private static instance: NcmService;
-    private readonly API_URL: string;
+// --- Classe de Serviço (Padrão Singleton) ---
+export class NcmService {
+  private static instance: NcmService;
+  private readonly apiUrl: string;
 
-    private constructor() {
-        // Acessa a variável de ambiente. 
-        this.API_URL = process.env.NEXT_PUBLIC_NCM_SEARCH_URL || 'http://localhost:8000/api/v1/ncm';
-        
-        if (!this.API_URL) {
-            console.error("Variável de ambiente NEXT_PUBLIC_NCM_SEARCH_URL não está definida. Usando fallback.");
-        }
+  private constructor() {
+    // Garante que a URL da API seja lida de variáveis de ambiente
+    this.apiUrl = process.env.NEXT_PUBLIC_NCM_API_URL || 'http://127.0.0.1:8000';
+    if (!this.apiUrl) {
+      console.error("A URL da API NCM não está configurada em NEXT_PUBLIC_NCM_API_URL");
     }
+  }
 
-    public static getInstance(): NcmService {
-        if (!NcmService.instance) {
-            NcmService.instance = new NcmService();
-        }
-        return NcmService.instance;
+  /**
+   * Obtém a instância única do serviço.
+   */
+  public static getInstance(): NcmService {
+    if (!NcmService.instance) {
+      NcmService.instance = new NcmService();
     }
+    return NcmService.instance;
+  }
 
-     // Realiza a busca semântica por NCM na API.
-     // @param query A descrição do produto para buscar.
-     // @returns Um array de resultados NcmResultFromApi.
-     
-    public async search(query: string): Promise<NcmResultFromApi[]> {
-        if (!query.trim()) {
-            return [];
-        }
-
-        const url = `${this.API_URL}?description=${encodeURIComponent(query)}`;
-
-        try {
-            const response = await fetch(url, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    // Adicione aqui qualquer chave ou token de API necessário, 
-                    // se for configurado no TupiNCM.
-                },
-                // Em um Server Component ou API Route, o 'cache: no-store' 
-                // é bom para garantir dados frescos.
-                cache: 'no-store' 
-            });
-
-            if (!response.ok) {
-                // Tenta ler o erro do corpo da resposta
-                let errorDetail = await response.json().catch(() => ({ detail: 'Erro desconhecido' }));
-                throw new Error(`Falha na API: ${response.status} - ${errorDetail.detail || response.statusText}`);
-            }
-
-            const data = await response.json();
-            // A API TupiNCM retorna uma lista de NCMs
-            return data.results || [];
-
-        } catch (error) {
-            console.error(`Falha ao buscar NCMs para "${query}":`, error);
-            // Re-throw para que o componente front-end possa capturar e mostrar o erro
-            throw new Error('Não foi possível conectar ou processar a resposta da API NCM.');
-        }
+  /**
+   * Busca sugestões de NCM com base em uma descrição.
+   * @param description A descrição do produto.
+   */
+  public async search(description: string): Promise<NcmResultFromApi[]> {
+    const url = `${this.apiUrl}/api/ncm-search?description=${encodeURIComponent(description)}`;
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Falha na busca de NCM: ${response.statusText}`);
     }
+    const data = await response.json();
+    return data.results || [];
+  }
+
+  /**
+   * **NOVO MÉTODO**
+   * Envia uma sugestão de classificação de NCM para a API.
+   * @param originalQuery O nome/descrição original do produto.
+   * @param ncm O objeto NCMResultFromApi que foi selecionado manualmente.
+   */
+  public async submitSuggestion(originalQuery: string, ncm: Omit<NcmResultFromApi, 'score' | 'source'>): Promise<void> {
+    const url = `${this.apiUrl}/api/ncm-suggestion`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        original_query: originalQuery,
+        ncm: ncm.ncm,
+        descricao: ncm.descricao,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Falha ao enviar sugestão: ${response.statusText}`);
+    }
+  }
 }
-
-export { NcmService };
