@@ -21,7 +21,7 @@ export function Sidebar() {
           <li>
             <button
               onClick={() => setIsNcmOpen(!isNcmOpen)}
-              className="w-full flex justify-between items-center py-2 px-4 rounded-lg hover:bg-gray-700 focus:outline-none"
+              className="w-full flex justify-between items-center py-2 px-4 rounded-lg hover:bg-purple-700 focus:outline-none"
             >
               <span className="font-semibold">NCM</span>
               <ChevronDown
@@ -35,7 +35,7 @@ export function Sidebar() {
                 <li>
                   <Link
                     href="/?view=search"
-                    className="flex items-center gap-3 py-2 px-3 rounded-lg hover:bg-gray-700"
+                    className="flex items-center gap-3 py-2 px-3 rounded-lg hover:bg-purple-700"
                   >
                     <Search size={18} />
                     <span>NCM Search</span>
@@ -44,7 +44,7 @@ export function Sidebar() {
                 <li>
                   <Link
                     href="/?view=processor"
-                    className="flex items-center gap-3 py-2 px-3 rounded-lg hover:bg-gray-700"
+                    className="flex items-center gap-3 py-2 px-3 rounded-lg hover:bg-purple-700"
                   >
                     <Package size={18} />
                     <span>NCM em Lote</span>
@@ -57,10 +57,10 @@ export function Sidebar() {
           {/* Menu Testes de Equipamentos (Padronizado) */}
           <li>
             <Link
-              href="/tms"
-              className="w-full flex items-center py-2 px-4 rounded-lg hover:bg-gray-700 focus:outline-none"
+              href="/sgt"
+              className="w-full flex items-center py-2 px-4 rounded-lg hover:bg-purple-700 focus:outline-none"
             >
-              <span className="font-semibold">Testes de Equipamentos</span>
+              <span className="font-semibold">Sistema de Gerenciamento de Testes</span>
             </Link>
           </li>
         </ul>
@@ -68,4 +68,3 @@ export function Sidebar() {
     </aside>
   );
 }
-

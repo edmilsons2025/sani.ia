@@ -14,8 +14,8 @@ export function NavButton({ currentView, view, setView, label }: NavButtonProps)
             onClick={() => setView(view)}
             className={`px-4 py-2 rounded-md font-semibold text-sm transition-colors ${
                 isActive 
-                ? 'bg-blue-600 text-white shadow-sm' 
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                ? 'bg-purple-600 text-white shadow-sm' 
+                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
             }`}
         >
             {label}
