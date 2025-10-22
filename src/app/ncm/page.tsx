@@ -99,7 +99,21 @@ export default function NcmProcessorPage() {
       setStep("upload");
       return;
     }
-    const rawData: unknown[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+    // --- OTIMIZAÇÃO ---
+    // Obter o range da planilha para evitar a leitura de milhões de linhas vazias
+    if (worksheet['!ref']) {
+      const range = XLSX.utils.decode_range(worksheet['!ref']);
+      const maxRows = 100000; // Limite de 100.000 linhas
+      if (range.e.r > maxRows) {
+        warn(`A planilha tem mais de ${maxRows} linhas. A leitura será limitada a ${maxRows} para evitar problemas de performance.`);
+        range.e.r = maxRows;
+        worksheet['!ref'] = XLSX.utils.encode_range(range);
+      }
+    }
+    // --------------------
+
+    const rawData: unknown[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1 , blankrows: false });
     if (rawData.length < 1) {
       setError("A aba selecionada está vazia ou em um formato inválido.");
       setStep("upload");
@@ -109,7 +123,7 @@ export default function NcmProcessorPage() {
     setHeaderLineIndex(1);
     setStep("header_line");
     setError(null);
-  }, [logError]);
+  }, [logError, warn]);
 
   /**
    * Lida com a seleção de um arquivo, lê o conteúdo e avança para a próxima etapa.
@@ -181,7 +195,7 @@ export default function NcmProcessorPage() {
       const row = sheetData[i];
       const query = String(row[sourceColumn] ?? "").trim();
       if (query.length < 3) {
-        results.push({ rowIndex: i, query: query || "Valor Nulo/Inválido", originalRow: row, ncmResults: [] });
+        //results.push({ rowIndex: i, query: query || "Valor Nulo/Inválido", originalRow: row, ncmResults: [] });
         continue;
       }
       try {
