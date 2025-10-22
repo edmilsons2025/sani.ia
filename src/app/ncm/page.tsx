@@ -34,8 +34,18 @@ interface ProcessingResult {
   rowIndex: number;
   query: string;
   originalRow: SheetRow;
-  ncmResults: NcmResultFromApi[];
+  ncmResults: NcmResultFromApi[]; // Assumindo que NcmResultFromApi tem { ncm: string, descricao: string }
 }
+
+// --- ALTERAÇÃO ---
+/**
+ * Define a estrutura da seleção final do usuário, agora incluindo a descrição.
+ */
+interface UserSelection {
+  ncm: string;
+  descricao: string;
+}
+// -----------------
 
 /**
  * Página principal para o processamento de NCMs em lote a partir de planilhas.
@@ -64,7 +74,10 @@ export default function NcmProcessorPage() {
 
   // --- Estados dos Resultados e Seleções do Usuário ---
   const [processingResults, setProcessingResults] = useState<ProcessingResult[]>([]);
-  const [userSelections, setUserSelections] = useState<Record<number, string>>({});
+  
+  const [userSelections, setUserSelections] = useState<Record<number, UserSelection>>({});
+  // -----------------
+
 
   /**
    * Reseta completamente o estado do componente para permitir um novo upload.
@@ -216,12 +229,41 @@ export default function NcmProcessorPage() {
     setStep("review");
   }, [sheetData, sourceColumn, destinationColumn]);
 
+  
+  // --- ALTERAÇÃO ---
   /**
    * Callback para registrar a seleção final do usuário.
+   * Agora, ele busca a descrição correspondente antes de salvar no estado.
    */
-  const handleNcmSelection = (rowIndex: number, ncm: string) => {
-    setUserSelections(prev => ({ ...prev, [rowIndex]: ncm }));
+  const handleNcmSelection = (rowIndex: number, ncmCode: string) => {
+    // A assinatura do prop (string) é mantida para não quebrar o ProductClassifier.
+    // Vamos encontrar o objeto NCM completo nos resultados do processamento.
+    const resultItem = processingResults.find(r => r.rowIndex === rowIndex);
+    if (!resultItem) {
+      warn(`(handleNcmSelection) Não foi possível encontrar o item de processamento para a linha ${rowIndex}.`);
+      return;
+    }
+
+    const selectedApiResult = resultItem.ncmResults.find(ncm => ncm.ncm === ncmCode);
+
+    if (selectedApiResult) {
+      // Encontramos o NCM e sua descrição nos resultados da API.
+      setUserSelections(prev => ({
+        ...prev,
+        [rowIndex]: { ncm: ncmCode, descricao: selectedApiResult.descricao }
+      }));
+    } else {
+      // Não encontrado. Isso pode ser uma entrada manual do ProductClassifier.
+      // Como não temos a descrição, salvaremos um fallback.
+      warn(`(handleNcmSelection) NCM "${ncmCode}" não encontrado nos resultados da API para a linha ${rowIndex}. Pode ser uma entrada manual.`);
+      setUserSelections(prev => ({
+        ...prev,
+        [rowIndex]: { ncm: ncmCode, descricao: "Descrição não encontrada (manual)" }
+      }));
+    }
   };
+  // -----------------
+
 
   /**
    * Callback para submeter uma sugestão vinda de uma busca manual.
@@ -242,27 +284,51 @@ export default function NcmProcessorPage() {
    */
   const isReviewComplete = useMemo(() => {
     if (processingResults.length === 0) return false;
+    // A verificação `userSelections[result.rowIndex]` continua válida (checa se a chave existe)
     return processingResults.every(result => result.ncmResults.length === 0 || userSelections[result.rowIndex]);
   }, [processingResults, userSelections]);
 
+  
+  // --- ALTERAÇÃO ---
   /**
    * Gera e inicia o download do arquivo XLSX final.
+   * Agora inclui a nova coluna "Descrição do NCM" e força a ordem das colunas.
    */
   const handleGenerateFile = useCallback(() => {
     setIsGenerating(true);
     try {
-      const finalData = sheetData.map((row, index) => {
-          const result = processingResults.find(r => r.originalRow === row);
-          if (result) {
-              const selectedNcm = userSelections[result.rowIndex];
-              if (selectedNcm) {
-                  return { ...result.originalRow, [destinationColumn]: selectedNcm };
-              }
-              return result.originalRow;
-          }
-          return row;
+      // 1. Definir a ordem final dos cabeçalhos
+      const newHeaders: string[] = [];
+      headers.forEach(header => {
+        newHeaders.push(header); // Adiciona o cabeçalho original
+        if (header === destinationColumn) {
+          // Se for a coluna NCM, adiciona a nova coluna de descrição logo depois
+          newHeaders.push("Descrição do NCM");
+        }
       });
-      const newWorksheet = XLSX.utils.json_to_sheet(finalData);
+
+      // 2. Mapear os dados para a estrutura final
+      const finalData = sheetData.map((row, index) => {
+        const result = processingResults.find(r => r.originalRow === row);
+        const selection = result ? userSelections[result.rowIndex] : undefined;
+
+        // Começa com uma cópia da linha original
+        const newRow: SheetRow = { ...row };
+
+        if (selection) {
+          // Se há uma seleção, preenche as colunas
+          newRow[destinationColumn] = selection.ncm;
+          newRow["Descrição do NCM"] = selection.descricao;
+        } else {
+          // Se não há seleção, garante que a coluna de descrição exista (vazia)
+          // para manter a consistência da planilha.
+          newRow["Descrição do NCM"] = row["Descrição do NCM"] ?? "";
+        }
+        return newRow;
+      });
+
+      // 3. Gerar a planilha com a ordem de cabeçalho explícita
+      const newWorksheet = XLSX.utils.json_to_sheet(finalData, { header: newHeaders });
       const newWorkbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, "NCMs Processados");
       const originalFileName = file?.name.replace(/\.(xlsx|xlsm)$/, "") || "planilha";
@@ -274,7 +340,10 @@ export default function NcmProcessorPage() {
     } finally {
       setIsGenerating(false);
     }
-  }, [sheetData, processingResults, userSelections, destinationColumn, file?.name]);
+    // Adicionado 'headers' à lista de dependências
+  }, [sheetData, processingResults, userSelections, destinationColumn, headers, file?.name]);
+  // -----------------
+
 
   return (
     <div className="font-sans w-full">
@@ -349,7 +418,20 @@ export default function NcmProcessorPage() {
           <div>
             <h2 className="text-2xl font-semibold text-gray-700 mb-4">Revise e Selecione os NCMs</h2>
             <p className="text-gray-600 mb-6">Selecione o NCM correto para cada produto.</p>
-            <ProductClassifier processingResults={processingResults} userSelections={userSelections} onNcmSelected={handleNcmSelection} onSuggestionSubmitted={handleSuggestionSubmission} />
+            
+            <ProductClassifier
+              processingResults={processingResults}
+              userSelections={
+                Object.entries(userSelections).reduce((acc, [key, value]) => {
+                  acc[Number(key)] = value.ncm;
+                  return acc;
+                }, {} as Record<number, string>)
+                // -----------------
+              }
+              onNcmSelected={handleNcmSelection}
+              onSuggestionSubmitted={handleSuggestionSubmission}
+            />
+
             <div className="mt-6 flex gap-4">
               <button onClick={handleGenerateFile} disabled={!isReviewComplete || isGenerating} className="px-6 py-3 bg-green-600 text-white font-semibold rounded-md shadow-sm hover:bg-green-700 disabled:bg-gray-400">{isGenerating ? "Gerando..." : "Confirmar e Gerar Planilha"}</button>
               <button onClick={resetState} className="px-6 py-3 bg-gray-200 text-gray-700 font-semibold rounded-md hover:bg-gray-300">Começar de Novo</button>
