@@ -1,11 +1,10 @@
+import uuid
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 
 import crud, models, schemas
 from database import SessionLocal, engine
-
-models.Base.metadata.create_all(bind=engine)
 
 router = APIRouter()
 
@@ -20,7 +19,7 @@ def get_db():
 
 @router.post("/lotes/{lote_id}/test_results/", response_model=schemas.TestResult)
 def create_test_result_for_lote(
-    lote_id: int, test_result: schemas.TestResultCreate, db: Session = Depends(get_db)
+    lote_id: uuid.UUID, test_result: schemas.TestResultCreate, db: Session = Depends(get_db)
 ):
     return crud.create_test_result(db=db, test_result=test_result, lote_id=lote_id)
 

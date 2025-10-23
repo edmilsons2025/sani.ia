@@ -10,11 +10,51 @@ import ConfiguracoesPage from '@/components/sgt/ConfiguracoesPage';
 import { NavButton } from '@/components/ui/NavButton';
 import * as sgtService from '@/services/sgtService';
 
+// --- DEFINIÇÃO DAS INTERFACES ---
+
+interface Lote {
+  id: string;
+  name: string;
+  status: string;
+}
+
+interface TestItem {
+  id: string;
+  name: string;
+  description: string;
+}
+
+interface TestClass {
+  id: string;
+  name: string;
+  test_items: TestItem[];
+}
+
+interface TestResultItem {
+  test_item_name: string;
+  status: 'Aprovado' | 'Reprovado';
+  observation: string;
+}
+
+interface TestResult {
+  id: string;
+  timestamp: string;
+  lote_id: string;
+  equipment_type: string;
+  equipment_sku: string;
+  equipment_barebone: string;
+  equipment_serial: string;
+  general_observations: string;
+  test_result_items: TestResultItem[];
+}
+
+// --- FIM DAS INTERFACES ---
+
 export default function FerramentaDeTestePage() {
   const [activeView, setActiveView] = useState('lotes');
-  const [lotes, setLotes] = useState([]);
-  const [testClasses, setTestClasses] = useState([]);
-  const [allTests, setAllTests] = useState([]);
+  const [lotes, setLotes] = useState<Lote[]>([]);
+  const [testClasses, setTestClasses] = useState<TestClass[]>([]);
+  const [allTests, setAllTests] = useState<TestResult[]>([]);
   const [activeLoteId, setActiveLoteId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -31,35 +71,45 @@ export default function FerramentaDeTestePage() {
     fetchData();
   }, []);
 
-  const createNewLote = async () => {
-    const newLoteName = prompt("Digite o nome do novo lote:");
-    if (newLoteName) {
-      const newLote = await sgtService.createLote(newLoteName);
-      setLotes([...lotes, newLote]);
+  const createNewLote = async (loteName: string) => {
+    try {
+      const newLote = await sgtService.createLote(loteName);
+      if (!newLote) {
+        throw new Error("A API não retornou dados para o novo lote.");
+      }
+      setLotes(prevLotes => [...prevLotes, newLote]); 
+      return newLote; 
+    } catch (error) {
+      console.error("Erro em createNewLote (page.tsx):", error);
+      throw error; 
     }
+  };
+
+  const deleteLote = async (loteId: string) => {
+    await sgtService.deleteLote(loteId); 
+    setLotes(prevLotes => prevLotes.filter(lote => lote.id !== loteId));
   };
 
   const addTestClass = async (className: string) => {
     const newTestClass = await sgtService.createTestClass(className);
-    setTestClasses([...testClasses, newTestClass]);
+    setTestClasses(prevClasses => [...prevClasses, newTestClass]);
   };
 
   const addTestToClass = async (className: string, testItem: { name: string; description: string }) => {
     const testClass = testClasses.find(tc => tc.name === className);
     if (testClass) {
       const newTestItem = await sgtService.createTestItem(testClass.id, testItem);
-      // Refresh test classes to get the new item
       const testClassesData = await sgtService.getTestClasses();
       setTestClasses(testClassesData);
     }
   };
 
   const addTestResult = async (testResult: any) => {
-    if (activeLoteId) {
-      const newTestResult = await sgtService.createTestResult(parseInt(activeLoteId), testResult);
-      setAllTests([...allTests, newTestResult]);
-    }
-  };
+  if (activeLoteId) {
+    const newTestResult = await sgtService.createTestResult(activeLoteId, testResult);
+    setAllTests(prevTests => [...prevTests, newTestResult]);
+  }
+};
 
   const updateLoteStatus = async (loteId: number, status: string) => {
     await sgtService.updateLoteStatus(loteId, status);
@@ -78,6 +128,7 @@ export default function FerramentaDeTestePage() {
     addTestToClass,
     addTestResult,
     updateLoteStatus,
+    deleteLote,
     removeTestFromClass: async (className: string, index: number) => {
       const testClass = testClasses.find(tc => tc.name === className);
       if (testClass) {
@@ -106,7 +157,7 @@ export default function FerramentaDeTestePage() {
       case 'testes':
         return <TestesPage testData={testData} setActiveView={setActiveView} />;
       case 'relatorios':
-        return <RelatoriosPage testData={{ allTests: testData.allTests, testClasses: testData.testClasses }} />;
+        return <RelatoriosPage testData={testData} />;
       case 'configuracoes':
         return <ConfiguracoesPage testData={testData} />;
       default:
@@ -121,7 +172,7 @@ export default function FerramentaDeTestePage() {
 
         <nav className="flex justify-start gap-2 border-b border-gray-700 pb-4 mb-6">
             <NavButton currentView={activeView} view="lotes" setView={setActiveView} label="Lotes" />
-            <NavButton currentView={activeView} view="testes" setView={setActiveView} label="Testes" />
+            {/* <NavButton currentView={activeView} view="testes" setView={setActiveView} label="Testes" /> */}
             <NavButton currentView={activeView} view="relatorios" setView={setActiveView} label="Relatórios" />
             <NavButton currentView={activeView} view="configuracoes" setView={setActiveView} label="Configurações" />
         </nav>

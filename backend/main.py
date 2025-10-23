@@ -1,9 +1,12 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
+from database import engine
+import models
 from routers import lotes, test_classes, test_results, test_items
 
 app = FastAPI()
+
+models.Base.metadata.create_all(bind=engine)
 
 # Set up CORS
 origins = [

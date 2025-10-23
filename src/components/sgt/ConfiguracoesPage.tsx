@@ -3,13 +3,13 @@
 import { useState } from 'react';
 
 interface TestItem {
-  id: number;
+  id: string;
   name: string;
-  desc: string;
+  description: string;
 }
 
 interface TestClass {
-  id: number;
+  id: string;
   name: string;
   test_items: TestItem[];
 }
@@ -18,7 +18,7 @@ interface ConfiguracoesPageProps {
   testData: {
     testClasses: TestClass[];
     addTestClass: (className: string) => void;
-    addTestToClass: (className: string, testItem: { name: string; desc: string }) => void;
+    addTestToClass: (className: string, testItem: { name: string; description: string }) => void;
     removeTestFromClass: (className: string, index: number) => void;
     removeClass: (className: string) => void;
   };
@@ -42,7 +42,7 @@ export default function ConfiguracoesPage({ testData }: ConfiguracoesPageProps) 
     const testName = formData.get('testName') as string;
     const testDesc = formData.get('testDesc') as string;
     if (testName && testDesc) {
-      addTestToClass(className, { name: testName, desc: testDesc });
+      addTestToClass(className, { name: testName, description: testDesc });
       e.currentTarget.reset();
     }
   };
@@ -80,7 +80,7 @@ export default function ConfiguracoesPage({ testData }: ConfiguracoesPageProps) 
               {testClass.test_items.map((test: TestItem, index: number) => (
                 <li key={test.id} className="flex justify-between items-center p-2 bg-gray-600 rounded-md">
                   <div>
-                    <strong>{test.name}</strong>: <span className="text-gray-400">{test.desc}</span>
+                    <strong>{test.name}</strong>: <span className="text-gray-400">{test.description}</span>
                   </div>
                   <button onClick={() => removeTestFromClass(testClass.name, index)} className="px-3 py-1 bg-red-800 text-red-200 text-xs rounded-md hover:bg-red-700">
                     Remover

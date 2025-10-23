@@ -7,16 +7,40 @@ import { exportToCsv } from '@/lib/testUtils';
 
 Chart.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
+// --- DEFINIÇÕES DE TIPO ---
+
+/**
+ * Representa a estrutura de um Lote (necessário para o dropdown).
+ */
+interface Lote {
+  id: string;
+  name: string;
+}
+
+/**
+ * Representa a estrutura de uma Classe de Teste (para o dropdown).
+ */
+interface TestClass {
+  id: string;
+  name: string;
+}
+
+/**
+ * Representa um item de resultado dentro de um TestResult.
+ */
 interface TestResultItem {
     test_item_name: string;
     status: 'Aprovado' | 'Reprovado';
     observation: string;
 }
 
+/**
+ * Representa a estrutura completa de um resultado de teste.
+ */
 export interface TestResult {
-  id: number;
+  id: string;
   timestamp: string;
-  lote_id: number;
+  lote_id: string;
   equipment_type: string;
   equipment_sku: string;
   equipment_barebone: string;
@@ -25,15 +49,30 @@ export interface TestResult {
   test_result_items: TestResultItem[];
 }
 
+/**
+ * Define as propriedades esperadas pelo componente RelatoriosPage.
+ */
 interface RelatoriosPageProps {
   testData: {
     allTests: TestResult[];
-    testClasses: any[];
+    testClasses: TestClass[];
+    lotes: Lote[]; // <-- Propriedade 'lotes' adicionada
   };
 }
 
+// --- COMPONENTE ---
+
+/**
+ * Componente RelatoriosPage
+ *
+ * Exibe filtros, gráficos e um relatório detalhado de todos os testes
+ * finalizados, permitindo a exportação dos dados.
+ *
+ * @param {RelatoriosPageProps} props - As propriedades do componente.
+ * @returns {JSX.Element} O componente RelatoriosPage renderizado.
+ */
 export default function RelatoriosPage({ testData }: RelatoriosPageProps) {
-  const { allTests, testClasses } = testData;
+  const { allTests, testClasses, lotes } = testData; // 'lotes' foi desestruturado
   const [filters, setFilters] = useState({
     start: '',
     end: '',
@@ -42,23 +81,35 @@ export default function RelatoriosPage({ testData }: RelatoriosPageProps) {
     barebone: '',
   });
 
+  /**
+   * Atualiza o estado dos filtros conforme o usuário interage.
+   */
   const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFilters(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
+  /**
+   * Memoiza os dados filtrados.
+   * A filtragem é recalculada apenas se 'allTests' ou 'filters' mudarem.
+   */
   const filteredData = useMemo(() => {
     return allTests.filter((test: TestResult) => {
         const start = filters.start ? new Date(filters.start).setHours(0,0,0,0) : null;
         const end = filters.end ? new Date(filters.end).setHours(23,59,59,999) : null;
         const testDate = new Date(test.timestamp).getTime();
+        
+        // O filtro de lote continua usando o ID (valor do <select>)
         return (!start || testDate >= start) &&
                (!end || testDate <= end) &&
-               (!filters.lote || test.lote_id.toString() === filters.lote) &&
+               (!filters.lote || test.lote_id === filters.lote) && 
                (!filters.tipo || test.equipment_type === filters.tipo) &&
                (!filters.barebone || test.equipment_barebone === filters.barebone);
     });
   }, [allTests, filters]);
 
+  /**
+   * Memoiza a contagem de falhas para o gráfico.
+   */
   const failureCounts = useMemo(() => {
     const counts: { [key: string]: number } = {};
     filteredData.forEach((test: TestResult) => {
@@ -71,6 +122,9 @@ export default function RelatoriosPage({ testData }: RelatoriosPageProps) {
     return counts;
   }, [filteredData]);
 
+  /**
+   * Prepara os dados para o gráfico de barras.
+   */
   const chartData = {
     labels: Object.keys(failureCounts),
     datasets: [{
@@ -82,12 +136,28 @@ export default function RelatoriosPage({ testData }: RelatoriosPageProps) {
     }]
   };
   
-  const uniqueLotes = [...new Set(allTests.map((t: TestResult) => t.lote_id))];
-  const uniqueBarebones = [...new Set(allTests.map((t: TestResult) => t.equipment_barebone))];
+  /**
+   * Cria um mapa de ID -> Nome para tradução rápida na tabela.
+   */
+  const loteNameMap = useMemo(() => {
+    return lotes.reduce((acc, lote) => {
+      acc[lote.id] = lote.name;
+      return acc;
+    }, {} as { [key: string]: string });
+  }, [lotes]);
+  
+  /**
+   * Extrai barebones únicos para o filtro.
+   */
+  const uniqueBarebones = useMemo(() => 
+    [...new Set(allTests.map((t: TestResult) => t.equipment_barebone))]
+  , [allTests]);
 
   return (
     <div className="bg-gray-800 text-white p-4">
       <h2 className="text-2xl font-bold text-white mb-6">Relatórios e Histórico</h2>
+      
+      {/* --- Filtros --- */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 p-4 bg-gray-700 rounded-md mb-6">
         <div>
             <label className="text-sm font-semibold text-gray-300">Data Início</label>
@@ -101,7 +171,10 @@ export default function RelatoriosPage({ testData }: RelatoriosPageProps) {
             <label className="text-sm font-semibold text-gray-300">Lote</label>
             <select name="lote" value={filters.lote} onChange={handleFilterChange} className="w-full p-2 border rounded-md bg-gray-600 text-white border-gray-500">
                 <option value="">Todos</option>
-                {uniqueLotes.map(lote => <option key={lote} value={lote}>{lote}</option>)}
+                {/* CORRIGIDO: Usa a lista 'lotes', mostrando 'lote.name' como texto e 'lote.id' como valor. */}
+                {lotes.map(lote => (
+                  <option key={lote.id} value={lote.id}>{lote.name}</option>
+                ))}
             </select>
         </div>
         <div>
@@ -119,15 +192,21 @@ export default function RelatoriosPage({ testData }: RelatoriosPageProps) {
             </select>
         </div>
       </div>
+      
+       {/* --- Ações --- */}
        <div className="mb-6">
             <button onClick={() => exportToCsv(filteredData as any)} className="px-4 py-2 bg-purple-600 text-white font-semibold rounded-md shadow-sm hover:bg-purple-700">
                 Exportar para CSV (Filtrado)
             </button>
        </div>
+       
+       {/* --- Gráfico --- */}
        <div className="mb-8 p-4 border rounded-md border-gray-700">
          <h3 className="text-lg font-semibold mb-2 text-gray-300">Gráfico de Falhas</h3>
          <Bar data={chartData} options={{ scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }} />
        </div>
+       
+       {/* --- Tabela Detalhada --- */}
        <div>
          <h3 className="text-lg font-semibold mb-2 text-gray-300">Relatório Detalhado</h3>
          <div className="overflow-x-auto">
@@ -145,10 +224,15 @@ export default function RelatoriosPage({ testData }: RelatoriosPageProps) {
                     {filteredData.map((test: TestResult) => (
                         <tr key={test.id} className="border-b border-gray-700">
                             <td className="p-2">{new Date(test.timestamp).toLocaleString('pt-BR')}</td>
-                            <td className="p-2">{test.lote_id}</td>
+                            {/* CORRIGIDO: Usa o 'loteNameMap' para traduzir o ID em nome. */}
+                            <td className="p-2">{loteNameMap[test.lote_id] || test.lote_id}</td>
                             <td className="p-2">{test.equipment_type}</td>
                             <td className="p-2">{test.equipment_serial}</td>
-                            <td className={`p-2 font-bold ${test.test_result_items.some((i: TestResultItem) => i.status === 'Reprovado') ? 'text-red-400' : 'text-green-400'}`}>
+                            <td className={`p-2 font-bold ${
+                              test.test_result_items.some((i: TestResultItem) => i.status === 'Reprovado') 
+                                ? 'text-red-400' 
+                                : 'text-green-400'
+                            }`}>
                                 {test.test_result_items.some((i: TestResultItem) => i.status === 'Reprovado') ? 'Reprovado' : 'Aprovado'}
                             </td>
                         </tr>

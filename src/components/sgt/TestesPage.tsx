@@ -2,30 +2,80 @@
 
 import { useState, useEffect } from 'react';
 
-// --- TIPAGEM DOS DADOS ---
-interface TestClass {
-  id: number;
+// --- DEFINIÇÕES DE TIPO ---
+
+/**
+ * Representa a estrutura de um Lote de teste.
+ */
+interface Lote {
+  id: string;
   name: string;
+  status: string;
+}
+
+/**
+ * Representa a estrutura de uma Classe de Teste.
+ */
+interface TestClass {
+  id: string;
+  name: string;
+  /** @property {any[]} test_items - Temporariamente como 'any' para flexibilidade. */
   test_items: any[];
 }
 
+/**
+ * Define as propriedades esperadas pelo componente TestesPage.
+ */
 interface TestesPageProps {
+  /**
+   * Contém os dados e funções de manipulação de estado
+   * fornecidos pelo componente pai.
+   */
   testData: {
+    /** O UUID do lote atualmente selecionado. */
     activeLoteId: string | null;
+    /** A lista de todas as classes de teste disponíveis. */
     testClasses: TestClass[];
+    /** A lista de todos os lotes (para encontrar o nome). */
+    lotes: Lote[];
+    /** Função para adicionar um novo resultado de teste. */
     addTestResult: (testResult: any) => void;
   };
+  /**
+   * Função para alterar a visualização ativa na página principal (ex: 'lotes').
+   */
   setActiveView: (view: string) => void;
 }
 
+/**
+ * Componente TestesPage
+ *
+ * Responsável pelo fluxo de execução de testes para um lote ativo.
+ * Renderiza dois estados principais:
+ * 1. Formulário de identificação do equipamento (se nenhum teste estiver em andamento).
+ * 2. Formulário de checklist (após a identificação do equipamento).
+ *
+ * @param {TestesPageProps} props - As propriedades do componente.
+ * @returns {JSX.Element} O componente TestesPage renderizado.
+ */
 export default function TestesPage({ testData, setActiveView }: TestesPageProps) {
-  const { activeLoteId, testClasses, addTestResult } = testData;
+  const { activeLoteId, testClasses, lotes, addTestResult } = testData;
   const [currentTest, setCurrentTest] = useState<any>(null);
 
+  /**
+   * Efeito que reseta o formulário (volta para a identificação)
+   * sempre que o lote ativo for alterado.
+   */
   useEffect(() => {
     setCurrentTest(null);
   }, [activeLoteId]);
 
+  /**
+   * Manipula o envio do formulário de identificação do equipamento.
+   * Armazena os dados do equipamento no estado `currentTest` e avança
+   * para a tela de checklist.
+   * @param e - O evento do formulário.
+   */
   const handleIdentificacaoSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -44,6 +94,12 @@ export default function TestesPage({ testData, setActiveView }: TestesPageProps)
     });
   };
 
+  /**
+   * Manipula o envio do formulário de checklist (o teste em si).
+   * Coleta todos os resultados, formata o objeto `testResult` e
+   * o envia para a API através da função `addTestResult`.
+   * @param e - O evento do formulário.
+   */
   const handleChecklistSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -51,7 +107,7 @@ export default function TestesPage({ testData, setActiveView }: TestesPageProps)
     const testClass = testClasses.find(tc => tc.name === tipo);
 
     if (!testClass) {
-      alert("Classe de teste não encontrada!");
+      alert("Erro: Classe de teste não encontrada!");
       return;
     }
 
@@ -69,9 +125,12 @@ export default function TestesPage({ testData, setActiveView }: TestesPageProps)
 
     addTestResult(testResult);
     alert('Relatório salvo! Adicione o próximo equipamento do lote.');
-    setCurrentTest(null);
+    setCurrentTest(null); // Reseta para o formulário de identificação
   };
 
+  // --- Renderização condicional ---
+
+  // Estado 1: Nenhum lote ativo selecionado
   if (!activeLoteId) {
     return (
       <div className="text-center">
@@ -83,12 +142,17 @@ export default function TestesPage({ testData, setActiveView }: TestesPageProps)
     );
   }
 
+  // Lógica para buscar o nome do lote ativo
+  const activeLote = lotes.find(lote => lote.id === activeLoteId);
+  const loteName = activeLote ? activeLote.name : activeLoteId; // Fallback para ID
+
+  // Estado 2: Lote ativo, aguardando identificação do equipamento
   if (!currentTest) {
     return (
       <div>
         <h2 className="text-2xl font-bold text-white mb-4">Adicionar Equipamento ao Lote</h2>
         <div className="bg-purple-600 text-white p-3 rounded-md text-center font-bold mb-6">
-          Lote Ativo: {activeLoteId}
+          Lote Ativo: {loteName}
         </div>
         <form id="form-identificacao" onSubmit={handleIdentificacaoSubmit}>
           <div className="space-y-4">
@@ -122,13 +186,16 @@ export default function TestesPage({ testData, setActiveView }: TestesPageProps)
     );
   }
   
+  // Busca o nome do lote novamente (para este escopo de renderização)
+  const activeLoteName = lotes.find(lote => lote.id === activeLoteId)?.name || activeLoteId;
   const testClass = testClasses.find(tc => tc.name === currentTest.equipamento.equipment_type);
 
+  // Estado 3: Checklist de teste em andamento
   return (
      <div>
         <h2 className="text-2xl font-bold text-white mb-4">Checklist de Testes</h2>
         <div className="bg-purple-900 border-l-4 border-purple-500 text-purple-200 p-4 mb-6 rounded-md">
-            <p><strong className="font-bold">Lote:</strong> {currentTest.equipamento.lote_id}</p>
+            <p><strong className="font-bold">Lote:</strong> {activeLoteName}</p>
             <p><strong className="font-bold">Tipo:</strong> {currentTest.equipamento.equipment_type}</p>
             <p><strong className="font-bold">Barebone:</strong> {currentTest.equipamento.equipment_barebone}</p>
             <p><strong className="font-bold">S/N:</strong> {currentTest.equipamento.equipment_serial}</p>

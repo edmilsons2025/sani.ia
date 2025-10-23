@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:8001/api';
+const API_URL = process.env.NEXT_PUBLIC_SGT_BASE_URL;
 
 // Lote Service
 export const getLotes = async () => {
@@ -13,8 +13,13 @@ export const createLote = async (loteName: string) => {
     return response.data;
 };
 
-export const updateLoteStatus = async (loteId: number, status: string) => {
+export const updateLoteStatus = async (loteId: string, status: string) => {
     const response = await axios.put(`${API_URL}/lotes/${loteId}/status`, { status });
+    return response.data;
+};
+
+export const deleteLote = async (loteId: string) => {
+    const response = await axios.delete(`${API_URL}/lotes/${loteId}/`);
     return response.data;
 };
 
@@ -29,17 +34,17 @@ export const createTestClass = async (className: string) => {
     return response.data;
 };
 
-export const createTestItem = async (testClassId: number, testItem: { name: string; description: string }) => {
+export const createTestItem = async (testClassId: string, testItem: { name: string; description: string }) => {
     const response = await axios.post(`${API_URL}/test_classes/${testClassId}/test_items/`, testItem);
     return response.data;
 };
 
-export const deleteTestClass = async (testClassId: number) => {
+export const deleteTestClass = async (testClassId: string) => {
     const response = await axios.delete(`${API_URL}/test_classes/${testClassId}`);
     return response.data;
 };
 
-export const deleteTestItem = async (testItemId: number) => {
+export const deleteTestItem = async (testItemId: string) => {
     const response = await axios.delete(`${API_URL}/test_items/${testItemId}`);
     return response.data;
 };
@@ -50,7 +55,7 @@ export const getTestResults = async () => {
     return response.data;
 };
 
-export const createTestResult = async (loteId: number, testResult: any) => {
+export const createTestResult = async (loteId: string, testResult: any) => {
     const response = await axios.post(`${API_URL}/lotes/${loteId}/test_results/`, testResult);
     return response.data;
 };

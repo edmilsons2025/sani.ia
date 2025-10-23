@@ -1,8 +1,9 @@
+import uuid
 from sqlalchemy.orm import Session
 import models, schemas
 
 # Lote CRUD
-def get_lote(db: Session, lote_id: int):
+def get_lote(db: Session, lote_id: uuid.UUID):
     return db.query(models.Lote).filter(models.Lote.id == lote_id).first()
 
 def get_lote_by_name(db: Session, name: str):
@@ -18,13 +19,24 @@ def create_lote(db: Session, lote: schemas.LoteCreate):
     db.refresh(db_lote)
     return db_lote
 
-def update_lote_status(db: Session, lote_id: int, status: str):
+def update_lote_status(db: Session, lote_id: uuid.UUID, status: str):
     db_lote = db.query(models.Lote).filter(models.Lote.id == lote_id).first()
     if db_lote:
         db_lote.status = status
         db.commit()
         db.refresh(db_lote)
     return db_lote
+
+def delete_lote(db: Session, lote_id: uuid.UUID):
+    db_lote = db.query(models.Lote).filter(models.Lote.id == lote_id).first()
+    if db_lote:
+        # NOTA: Se você tiver 'test_results' ligados a este lote,
+        # você pode precisar deletá-los primeiro, ou configurar
+        # 'on delete cascade' no seu models.py / banco de dados.
+        db.delete(db_lote)
+        db.commit()
+        return db_lote
+    return None
 
 # TestClass CRUD
 def get_test_class(db: Session, test_class_id: int):
@@ -63,7 +75,7 @@ def delete_test_item(db: Session, test_item_id: int):
     return db_test_item
 
 # TestResult CRUD
-def create_test_result(db: Session, test_result: schemas.TestResultCreate, lote_id: int):
+def create_test_result(db: Session, test_result: schemas.TestResultCreate, lote_id: uuid.UUID):
     db_test_result = models.TestResult(
         **test_result.dict(exclude={"test_result_items"}), lote_id=lote_id
     )

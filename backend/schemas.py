@@ -1,3 +1,4 @@
+import uuid # NOVO
 from pydantic import BaseModel
 from typing import List, Optional
 import datetime
@@ -12,17 +13,15 @@ class TestResultItemCreate(TestResultItemBase):
     pass
 
 class TestResultItem(TestResultItemBase):
-    id: int
-    test_result_id: int
+    id: uuid.UUID
+    test_result_id: uuid.UUID
 
     class Config:
-        orm_mode = True
+        from_attributes = True # Correto (Pydantic V2)
 
 # TestResult Schemas
 class TestResultBase(BaseModel):
-    equipment_type: str
-    equipment_sku: str
-    equipment_barebone: str
+    # ... (seus campos base) ...
     equipment_serial: str
     general_observations: Optional[str] = None
 
@@ -30,13 +29,13 @@ class TestResultCreate(TestResultBase):
     test_result_items: List[TestResultItemCreate]
 
 class TestResult(TestResultBase):
-    id: int
+    id: uuid.UUID
     timestamp: datetime.datetime
-    lote_id: int
+    lote_id: uuid.UUID
     test_result_items: List[TestResultItem] = []
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 # Lote Schemas
 class LoteBase(BaseModel):
@@ -46,13 +45,13 @@ class LoteCreate(LoteBase):
     pass
 
 class Lote(LoteBase):
-    id: int
+    id: uuid.UUID
     created_at: datetime.datetime
     status: str
     test_results: List[TestResult] = []
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 # TestItem Schemas
 class TestItemBase(BaseModel):
@@ -63,11 +62,11 @@ class TestItemCreate(TestItemBase):
     pass
 
 class TestItem(TestItemBase):
-    id: int
-    test_class_id: int
+    id: uuid.UUID
+    test_class_id: uuid.UUID
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 # TestClass Schemas
 class TestClassBase(BaseModel):
@@ -77,8 +76,8 @@ class TestClassCreate(TestClassBase):
     pass
 
 class TestClass(TestClassBase):
-    id: int
+    id: uuid.UUID
     test_items: List[TestItem] = []
 
     class Config:
-        orm_mode = True
+        from_attributes = True

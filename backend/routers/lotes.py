@@ -1,11 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, Body
+import uuid
+from fastapi import APIRouter, Depends, HTTPException, Body, Response
 from sqlalchemy.orm import Session
 from typing import List, Annotated
 
 import crud, models, schemas
 from database import SessionLocal, engine
-
-models.Base.metadata.create_all(bind=engine)
 
 router = APIRouter()
 
@@ -33,7 +32,7 @@ def read_lotes(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
 
 
 @router.get("/lotes/{lote_id}", response_model=schemas.Lote)
-def read_lote(lote_id: int, db: Session = Depends(get_db)):
+def read_lote(lote_id: uuid.UUID, db: Session = Depends(get_db)):
     db_lote = crud.get_lote(db, lote_id=lote_id)
     if db_lote is None:
         raise HTTPException(status_code=404, detail="Lote not found")
@@ -41,8 +40,15 @@ def read_lote(lote_id: int, db: Session = Depends(get_db)):
 
 
 @router.put("/lotes/{lote_id}/status", response_model=schemas.Lote)
-def update_lote_status(lote_id: int, status: Annotated[str, Body(embed=True)], db: Session = Depends(get_db)):
+def update_lote_status(lote_id: uuid.UUID, status: Annotated[str, Body(embed=True)], db: Session = Depends(get_db)):
     db_lote = crud.update_lote_status(db, lote_id=lote_id, status=status)
     if db_lote is None:
         raise HTTPException(status_code=404, detail="Lote not found")
     return db_lote
+
+@router.delete("/lotes/{lote_id}/", status_code=204)
+def delete_lote_endpoint(lote_id: uuid.UUID, db: Session = Depends(get_db)):
+    deleted_lote = crud.delete_lote(db, lote_id=lote_id)
+    if deleted_lote is None:
+        raise HTTPException(status_code=404, detail="Lote not found")
+    return Response(status_code=204)
